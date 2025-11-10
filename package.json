@@ -1,0 +1,43 @@
+{
+  "name": "electron-todolist",
+  "version": "2.2.0",
+  "description": "一个支持分组管理、窗口置顶和系统托盘的 TodoList 桌面应用",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win --x64",
+    "build:dir": "electron-builder --win --x64 --dir"
+  },
+  "keywords": ["electron", "todolist", "sticky-notes", "group-management"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^27.0.0",
+    "electron-builder": "^24.6.4"
+  },
+  "build": {
+    "appId": "com.electron.todolist",
+    "productName": "TodoList",
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!**/node_modules/**/*",
+      "!dist",
+      "!.git"
+    ],
+    "electronDownload": {
+      "cache": "./electron-cache"
+    }
+  }
+}
+

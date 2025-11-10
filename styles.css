@@ -1,0 +1,432 @@
+/* 全局样式 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f5f5f5;
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* 自定义标题栏 */
+.titlebar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 40px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 0 15px;
+  -webkit-app-region: drag;
+}
+
+.titlebar-drag-region {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.titlebar-title {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.titlebar-controls {
+  display: flex;
+  gap: 8px;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar-button {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.titlebar-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.titlebar-button.close:hover {
+  background: #e74c3c;
+}
+
+/* 置顶按钮 */
+.titlebar-button.pin {
+  position: relative;
+}
+
+.titlebar-button.pin:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.titlebar-button.pin.active {
+  background: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4) inset;
+}
+
+.titlebar-button.pin.active:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* 主容器 */
+.container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 40px);
+  padding: 20px;
+  background-color: #f5f5f5;
+}
+
+/* 输入区域 */
+.input-section {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.todo-input {
+  flex: 1;
+  padding: 12px 16px;
+  font-size: 14px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  outline: none;
+  transition: all 0.3s ease;
+  background-color: white;
+}
+
+.todo-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.add-btn {
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.add-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.add-btn:active {
+  transform: translateY(0);
+}
+
+/* 待办列表容器 */
+.todos-container {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 15px;
+}
+
+.todo-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 滚动条样式 */
+.todos-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.todos-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.todos-container::-webkit-scrollbar-thumb {
+  background: #d0d0d0;
+  border-radius: 3px;
+}
+
+.todos-container::-webkit-scrollbar-thumb:hover {
+  background: #b0b0b0;
+}
+
+/* 待办项 */
+.todo-item {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.todo-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.todo-item.completed {
+  opacity: 0.6;
+}
+
+/* 复选框 */
+.todo-checkbox {
+  width: 20px;
+  height: 20px;
+  margin-right: 12px;
+  cursor: pointer;
+  accent-color: #667eea;
+}
+
+/* 待办文本 */
+.todo-text {
+  flex: 1;
+  font-size: 14px;
+  color: #333;
+  line-height: 1.5;
+  word-break: break-word;
+  cursor: pointer;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.todo-item.completed .todo-text {
+  text-decoration: line-through;
+  color: #999;
+}
+
+/* 编辑输入框 */
+.todo-edit-input {
+  flex: 1;
+  padding: 6px 10px;
+  font-size: 14px;
+  border: 2px solid #667eea;
+  border-radius: 6px;
+  outline: none;
+  background-color: #f9f9f9;
+  margin-right: 12px;
+}
+
+/* 删除按钮 */
+.delete-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: #ff6b6b;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s ease;
+  font-size: 18px;
+}
+
+.todo-item:hover .delete-btn {
+  opacity: 1;
+}
+
+.delete-btn:hover {
+  background: #ff5252;
+  transform: scale(1.1);
+}
+
+/* 底部区域 */
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid #e0e0e0;
+}
+
+.todo-count {
+  font-size: 13px;
+  color: #666;
+  font-weight: 500;
+}
+
+.clear-btn {
+  padding: 8px 16px;
+  font-size: 12px;
+  border: none;
+  background: #f0f0f0;
+  color: #666;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.clear-btn:hover {
+  background: #e0e0e0;
+  color: #333;
+}
+
+.clear-btn:active {
+  transform: scale(0.95);
+}
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #999;
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.empty-state-text {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* 动画效果 */
+.todo-item.removing {
+  animation: slideOut 0.3s ease forwards;
+}
+
+@keyframes slideOut {
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+/* 时间戳 */
+.todo-timestamp {
+  font-size: 11px;
+  color: #aaa;
+  margin-left: 12px;
+  white-space: nowrap;
+}
+
+/* ========================================
+   分组管理相关样式
+   ======================================== */
+
+/* 分组列表 */
+.group-list {
+  gap: 12px;
+}
+
+/* 分组项 */
+.group-item {
+  cursor: pointer;
+  padding: 16px;
+  transition: all 0.3s ease;
+}
+
+.group-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+.group-item:active {
+  transform: translateY(-1px);
+}
+
+/* 分组图标 */
+.group-icon {
+  font-size: 24px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+/* 分组名称 */
+.group-name {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 500;
+  color: #333;
+  word-break: break-word;
+}
+
+/* 右侧内容 */
+.group-right-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+/* 分组计数徽章 */
+.group-count-badge {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 40px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* 管理模式下的删除按钮始终可见 */
+.delete-btn.visible {
+  opacity: 1;
+}
+
+/* 删除模式下的分组项样式 */
+.group-item.delete-mode {
+  background: #fff5f5;
+  border: 2px solid #ff6b6b;
+}
+
+/* 响应式调整 */
+@media (max-width: 480px) {
+  .group-icon {
+    font-size: 20px;
+    margin-right: 8px;
+  }
+  
+  .group-name {
+    font-size: 14px;
+  }
+  
+  .group-count-badge {
+    font-size: 11px;
+    padding: 3px 8px;
+    min-width: 35px;
+  }
+}
+

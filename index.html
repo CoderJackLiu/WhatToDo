@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TodoList</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- 自定义标题栏 -->
+  <div class="titlebar">
+    <div class="titlebar-drag-region">
+      <span class="titlebar-title">📝 TodoList</span>
+    </div>
+    <div class="titlebar-controls">
+      <button class="titlebar-button minimize" id="minimize-btn" title="最小化">
+        <svg width="12" height="12" viewBox="0 0 12 12">
+          <rect x="0" y="5" width="12" height="2" fill="currentColor"/>
+        </svg>
+      </button>
+      <button class="titlebar-button close" id="close-btn" title="关闭">
+        <svg width="12" height="12" viewBox="0 0 12 12">
+          <path d="M1 1 L11 11 M11 1 L1 11" stroke="currentColor" stroke-width="2" fill="none"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- 主内容区 -->
+  <div class="container">
+    <!-- 输入区域 -->
+    <div class="input-section">
+      <input 
+        type="text" 
+        id="todo-input" 
+        class="todo-input" 
+        placeholder="添加新的待办事项..."
+        autocomplete="off"
+      >
+      <button id="add-btn" class="add-btn">
+        <svg width="20" height="20" viewBox="0 0 20 20">
+          <path d="M10 4 L10 16 M4 10 L16 10" stroke="currentColor" stroke-width="2" fill="none"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- 待办列表 -->
+    <div class="todos-container">
+      <ul id="todo-list" class="todo-list">
+        <!-- 待办项将通过 JavaScript 动态生成 -->
+      </ul>
+    </div>
+
+    <!-- 底部统计 -->
+    <div class="footer">
+      <span id="todo-count" class="todo-count">0 个待办事项</span>
+      <button id="clear-completed" class="clear-btn">清除已完成</button>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
+
