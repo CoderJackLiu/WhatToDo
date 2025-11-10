@@ -1,7 +1,7 @@
 {
   "name": "electron-todolist",
-  "version": "2.2.0",
-  "description": "一个支持分组管理、窗口置顶和系统托盘的 TodoList 桌面应用",
+  "version": "2.3.0",
+  "description": "一个支持分组管理、智能标题栏和系统托盘的 TodoList 桌面应用",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

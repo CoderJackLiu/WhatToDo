@@ -6,7 +6,10 @@
   <title>TodoList</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body class="group-detail">
+  <!-- 标题栏触发区域 -->
+  <div class="titlebar-trigger"></div>
+  
   <!-- 自定义标题栏 -->
   <div class="titlebar">
     <div class="titlebar-drag-region">
@@ -33,6 +36,19 @@
 
   <!-- 主内容区 -->
   <div class="container">
+    <!-- 待办列表 -->
+    <div class="todos-container">
+      <ul id="todo-list" class="todo-list">
+        <!-- 待办项将通过 JavaScript 动态生成 -->
+      </ul>
+    </div>
+
+    <!-- 底部统计 -->
+    <div class="footer">
+      <span id="todo-count" class="todo-count">0 个待办事项</span>
+      <button id="clear-completed" class="clear-btn">清除已完成</button>
+    </div>
+
     <!-- 输入区域 -->
     <div class="input-section">
       <input 
@@ -47,19 +63,6 @@
           <path d="M10 4 L10 16 M4 10 L16 10" stroke="currentColor" stroke-width="2" fill="none"/>
         </svg>
       </button>
-    </div>
-
-    <!-- 待办列表 -->
-    <div class="todos-container">
-      <ul id="todo-list" class="todo-list">
-        <!-- 待办项将通过 JavaScript 动态生成 -->
-      </ul>
-    </div>
-
-    <!-- 底部统计 -->
-    <div class="footer">
-      <span id="todo-count" class="todo-count">0 个待办事项</span>
-      <button id="clear-completed" class="clear-btn">清除已完成</button>
     </div>
   </div>
 

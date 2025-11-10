@@ -2,7 +2,7 @@
 
 一个功能强大的 TodoList 桌面应用，支持分组管理和多窗口操作，灵感来自微软 Sticky Notes。
 
-![Version](https://img.shields.io/badge/version-2.2-blue)
+![Version](https://img.shields.io/badge/version-2.3-blue)
 ![Electron](https://img.shields.io/badge/Electron-27.0.0-green)
 ![License](https://img.shields.io/badge/license-MIT-orange)
 
@@ -12,6 +12,7 @@
 - **📋 分组管理** - 创建多个待办分组，分类管理任务
 - **🪟 多窗口支持** - 每个分组独立窗口，可同时打开多个
 - **📌 窗口置顶** - 分组窗口可以固定在最前面，方便随时查看
+- **🎯 智能标题栏** - 分组窗口标题栏自动隐藏，鼠标靠近时显示
 - **📊 进度可视化** - 实时显示每个分组的完成进度
 - **🔔 系统托盘** - 关闭窗口最小化到托盘，双击托盘图标恢复
 - **💾 自动保存** - 所有操作自动保存，数据永不丢失
@@ -158,6 +159,7 @@ npm run build
 ### 窗口控制
 | 操作 | 说明 |
 |------|------|
+| 显示标题栏 | 鼠标移至窗口顶部（分组窗口） |
 | 拖动 | 拖动标题栏移动窗口 |
 | 置顶 | 点击 📌 按钮（固定在最前） |
 | 最小化 | 点击 - 按钮 |
@@ -245,7 +247,13 @@ ToDoList/
 
 ## 🔄 版本历史
 
-### Version 2.2 - 系统托盘（当前）
+### Version 2.3 - 智能标题栏（当前）
+- ✅ 分组窗口标题栏自动隐藏
+- ✅ 鼠标移至顶部区域自动显示
+- ✅ 延迟隐藏，避免误触
+- ✅ 全屏工作空间体验
+
+### Version 2.2 - 系统托盘
 - ✅ 新增系统托盘功能
 - ✅ 关闭窗口最小化到托盘
 - ✅ 双击托盘图标恢复主窗口
@@ -334,4 +342,4 @@ MIT License
 **Enjoy organizing your tasks!** 🎉
 
 Made with ❤️ and Electron  
-Version 2.2 - 2025年11月10日
+Version 2.3 - 2025年11月10日

@@ -8,6 +8,8 @@ const pinBtn = document.getElementById('pin-btn');
 const minimizeBtn = document.getElementById('minimize-btn');
 const closeBtn = document.getElementById('close-btn');
 const windowTitle = document.getElementById('window-title');
+const titlebar = document.querySelector('.titlebar');
+const titlebarTrigger = document.querySelector('.titlebar-trigger');
 
 // 当前分组信息
 let currentGroupId = null;
@@ -91,6 +93,113 @@ function bindEvents() {
   window.electronAPI.onAlwaysOnTopChanged((isOnTop) => {
     isAlwaysOnTop = isOnTop;
     updatePinButton();
+  });
+  
+  // 标题栏自动显示隐藏
+  setupTitlebarAutoHide();
+}
+
+// 设置标题栏自动显示隐藏
+function setupTitlebarAutoHide() {
+  let hideTimer = null;
+  let isDragging = false;
+  let dragEndTime = 0;
+  let isMouseInTopArea = false;
+  
+  // 监听拖动开始 - 使用捕获阶段确保能捕获到事件
+  document.addEventListener('mousedown', (e) => {
+    // 检查是否点击在标题栏区域（包括隐藏状态下的顶部区域）
+    if (e.clientY < 50 && titlebar.classList.contains('visible')) {
+      isDragging = true;
+      // 拖动时保持标题栏可见
+      titlebar.classList.add('visible');
+      if (hideTimer) {
+        clearTimeout(hideTimer);
+        hideTimer = null;
+      }
+    }
+  }, true);
+  
+  // 监听拖动结束
+  document.addEventListener('mouseup', () => {
+    if (isDragging) {
+      isDragging = false;
+      dragEndTime = Date.now();
+    }
+  });
+  
+  // 鼠标移动到顶部区域时显示标题栏
+  document.addEventListener('mousemove', (e) => {
+    const inTopArea = e.clientY < 50;
+    isMouseInTopArea = inTopArea;
+    
+    // 如果正在拖动，保持标题栏可见
+    if (isDragging) {
+      titlebar.classList.add('visible');
+      if (hideTimer) {
+        clearTimeout(hideTimer);
+        hideTimer = null;
+      }
+      return;
+    }
+    
+    // 如果刚结束拖动（800ms内），不立即隐藏
+    const timeSinceDragEnd = Date.now() - dragEndTime;
+    if (timeSinceDragEnd < 800 && dragEndTime > 0) {
+      return;
+    }
+    
+    // 如果鼠标在顶部 50px 区域
+    if (inTopArea) {
+      titlebar.classList.add('visible');
+      
+      // 清除之前的隐藏定时器
+      if (hideTimer) {
+        clearTimeout(hideTimer);
+        hideTimer = null;
+      }
+    } else {
+      // 鼠标离开顶部区域，延迟隐藏
+      if (!hideTimer && !isDragging) {
+        hideTimer = setTimeout(() => {
+          // 再次确认不在拖动状态且不在顶部区域
+          if (!isDragging && !isMouseInTopArea) {
+            titlebar.classList.remove('visible');
+          }
+          hideTimer = null;
+        }, 600);
+      }
+    }
+  });
+  
+  // 鼠标在标题栏上时保持显示
+  titlebar.addEventListener('mouseenter', () => {
+    if (hideTimer) {
+      clearTimeout(hideTimer);
+      hideTimer = null;
+    }
+  });
+  
+  // 鼠标离开标题栏时延迟隐藏
+  titlebar.addEventListener('mouseleave', (e) => {
+    // 如果正在拖动，不隐藏
+    if (isDragging) {
+      return;
+    }
+    
+    // 检查鼠标是否还在顶部区域
+    if (e.clientY < 50) {
+      return;
+    }
+    
+    if (!hideTimer) {
+      hideTimer = setTimeout(() => {
+        if (!isDragging && !isMouseInTopArea) {
+          titlebar.classList.remove('visible');
+        }
+        hideTimer = null;
+      }, 600);
+    }
   });
 }
 
