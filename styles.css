@@ -40,11 +40,14 @@ body.group-detail .titlebar {
   left: 0;
   right: 0;
   z-index: 1000;
-  transform: translateY(-100%);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
 }
 
 body.group-detail .titlebar.visible {
-  transform: translateY(0);
+  opacity: 1;
+  visibility: visible;
 }
 
 /* 标题栏触发区域 */
@@ -139,6 +142,18 @@ body.group-detail .container {
   padding: 4px 0;
   border-top: 1px solid #e8dcc3;
   border-bottom: 1px solid #e8dcc3;
+}
+
+/* 分组窗口的输入区域默认隐藏 */
+body.group-detail .input-section {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+body.group-detail .input-section.visible {
+  opacity: 1;
+  visibility: visible;
 }
 
 .todo-input {
@@ -324,6 +339,18 @@ body.group-detail .container {
   padding: 3px 0;
   margin-top: 0;
   background-color: #fefaed;
+}
+
+/* 分组窗口的底部区域默认隐藏 */
+body.group-detail .footer {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+body.group-detail .footer.visible {
+  opacity: 1;
+  visibility: visible;
 }
 
 .todo-count {

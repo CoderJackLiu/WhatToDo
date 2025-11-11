@@ -16,6 +16,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   toggleAlwaysOnTop: () => ipcRenderer.send('toggle-always-on-top'),
   onAlwaysOnTopChanged: (callback) => ipcRenderer.on('always-on-top-changed', (event, isOnTop) => callback(isOnTop)),
   
+  // 窗口焦点状态
+  onWindowFocus: (callback) => ipcRenderer.on('window-focus', () => callback()),
+  onWindowBlur: (callback) => ipcRenderer.on('window-blur', () => callback()),
+  
   // 获取用户数据路径
   getUserDataPath: () => ipcRenderer.invoke('get-user-data-path')
 });

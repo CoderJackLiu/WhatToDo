@@ -86,6 +86,15 @@ function createGroupWindow(groupId, groupName) {
     groupWindow.webContents.send('group-info', { groupId, groupName });
   });
 
+  // 监听窗口焦点变化
+  groupWindow.on('focus', () => {
+    groupWindow.webContents.send('window-focus');
+  });
+
+  groupWindow.on('blur', () => {
+    groupWindow.webContents.send('window-blur');
+  });
+
   // 开发模式下打开开发者工具
   // groupWindow.webContents.openDevTools();
 
