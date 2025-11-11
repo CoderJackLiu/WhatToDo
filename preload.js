@@ -6,6 +6,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   loadGroups: () => ipcRenderer.invoke('load-groups'),
   saveGroups: (data) => ipcRenderer.invoke('save-groups', data),
   openGroup: (groupId, groupName) => ipcRenderer.send('open-group', { groupId, groupName }),
+  notifyGroupsChanged: () => ipcRenderer.send('groups-changed'),
+  onGroupsChanged: (callback) => ipcRenderer.on('groups-changed', () => callback()),
   
   // 接收分组信息（用于分组详情窗口）
   onGroupInfo: (callback) => ipcRenderer.on('group-info', (event, data) => callback(data)),

@@ -59,6 +59,8 @@ async function saveGroupData() {
       group.todos = todos;
       group.updatedAt = Date.now();
       await window.electronAPI.saveGroups({ groups });
+      // 通知主窗口刷新
+      window.electronAPI.notifyGroupsChanged();
     }
   } catch (error) {
     console.error('保存分组数据失败:', error);

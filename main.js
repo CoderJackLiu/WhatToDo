@@ -202,6 +202,14 @@ ipcMain.on('open-group', (event, { groupId, groupName }) => {
   createGroupWindow(groupId, groupName);
 });
 
+// 分组数据变化通知
+ipcMain.on('groups-changed', () => {
+  // 通知主窗口刷新
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('groups-changed');
+  }
+});
+
 // 窗口控制（支持多窗口）
 ipcMain.on('minimize-window', (event) => {
   const window = BrowserWindow.fromWebContents(event.sender);

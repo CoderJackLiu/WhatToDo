@@ -16,6 +16,12 @@ async function init() {
   await loadGroups();
   bindEvents();
   renderGroups();
+  
+  // 监听分组数据变化
+  window.electronAPI.onGroupsChanged(async () => {
+    await loadGroups();
+    renderGroups();
+  });
 }
 
 // 加载分组数据
