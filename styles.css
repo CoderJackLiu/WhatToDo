@@ -6,8 +6,8 @@
 }
 
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f5f5f5;
+  font-family: 'Segoe UI', 'Microsoft YaHei UI', sans-serif;
+  background-color: #fefaed;
   overflow: hidden;
   -webkit-user-select: none;
   user-select: none;
@@ -18,12 +18,13 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 40px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 0 15px;
+  height: 32px;
+  background: #fef7dc;
+  color: #7d6c4d;
+  padding: 0 12px;
   -webkit-app-region: drag;
   transition: transform 0.3s ease;
+  border-bottom: 1px solid #e8dcc3;
 }
 
 /* 主窗口标题栏固定在顶部 */
@@ -64,9 +65,9 @@ body.group-detail .titlebar.visible {
 }
 
 .titlebar-title {
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.3px;
 }
 
 .titlebar-controls {
@@ -76,25 +77,26 @@ body.group-detail .titlebar.visible {
 }
 
 .titlebar-button {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border: none;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  border-radius: 4px;
+  background: transparent;
+  color: #7d6c4d;
+  border-radius: 3px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .titlebar-button:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(125, 108, 77, 0.1);
 }
 
 .titlebar-button.close:hover {
-  background: #e74c3c;
+  background: rgba(231, 76, 60, 0.15);
+  color: #e74c3c;
 }
 
 /* 置顶按钮 */
@@ -103,79 +105,85 @@ body.group-detail .titlebar.visible {
 }
 
 .titlebar-button.pin:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(125, 108, 77, 0.1);
 }
 
 .titlebar-button.pin.active {
-  background: rgba(255, 255, 255, 0.3);
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4) inset;
+  background: rgba(125, 108, 77, 0.15);
+  color: #5c4f3a;
 }
 
 .titlebar-button.pin.active:hover {
-  background: rgba(255, 255, 255, 0.35);
+  background: rgba(125, 108, 77, 0.2);
 }
 
 /* 主容器 */
 .container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 40px);
-  padding: 20px 20px 5px 20px;
-  background-color: #f5f5f5;
+  height: calc(100vh - 32px);
+  padding: 15px 15px 5px 15px;
+  background-color: #fefaed;
 }
 
 /* 分组窗口的主容器 */
 body.group-detail .container {
   height: 100vh;
-  padding: 60px 20px 5px 20px;
+  padding: 50px 15px 5px 15px;
 }
 
 /* 输入区域 */
 .input-section {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   padding: 4px 0;
-  border-top: 1px solid #e0e0e0;
-  border-bottom: 1px solid #e0e0e0;
+  border-top: 1px solid #e8dcc3;
+  border-bottom: 1px solid #e8dcc3;
 }
 
 .todo-input {
   flex: 1;
-  padding: 12px 16px;
+  padding: 8px 12px;
   font-size: 14px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
+  border: 1px solid #e8dcc3;
+  border-radius: 4px;
   outline: none;
-  transition: all 0.3s ease;
-  background-color: white;
+  transition: all 0.2s ease;
+  background-color: #fffef8;
+  color: #5c4f3a;
+}
+
+.todo-input::placeholder {
+  color: #b5a88f;
 }
 
 .todo-input:focus {
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #d4c7a8;
+  background-color: #ffffff;
 }
 
 .add-btn {
-  width: 44px;
-  height: 44px;
-  border: none;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #e8dcc3;
+  background: #fffef8;
+  color: #7d6c4d;
+  border-radius: 4px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .add-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  background: #f5f0e1;
+  border-color: #d4c7a8;
 }
 
 .add-btn:active {
-  transform: translateY(0);
+  transform: scale(0.95);
+  background: #eee8d8;
 }
 
 /* 待办列表容器 */
@@ -214,18 +222,18 @@ body.group-detail .container {
 .todo-item {
   display: flex;
   align-items: center;
-  padding: 14px 16px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
-  animation: slideIn 0.3s ease;
+  padding: 10px 12px;
+  background: #fffef8;
+  border: 1px solid #f0e9d7;
+  border-radius: 3px;
+  transition: all 0.15s ease;
+  animation: slideIn 0.2s ease;
 }
 
 @keyframes slideIn {
   from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(-5px);
   }
   to {
     opacity: 1;
@@ -234,28 +242,29 @@ body.group-detail .container {
 }
 
 .todo-item:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
+  background: #ffffff;
+  border-color: #e8dcc3;
 }
 
 .todo-item.completed {
-  opacity: 0.6;
+  opacity: 0.5;
+  text-decoration: line-through;
 }
 
 /* 复选框 */
 .todo-checkbox {
-  width: 20px;
-  height: 20px;
-  margin-right: 12px;
+  width: 18px;
+  height: 18px;
+  margin-right: 10px;
   cursor: pointer;
-  accent-color: #667eea;
+  accent-color: #a89875;
 }
 
 /* 待办文本 */
 .todo-text {
   flex: 1;
   font-size: 14px;
-  color: #333;
+  color: #5c4f3a;
   line-height: 1.5;
   word-break: break-word;
   cursor: pointer;
@@ -265,7 +274,7 @@ body.group-detail .container {
 
 .todo-item.completed .todo-text {
   text-decoration: line-through;
-  color: #999;
+  color: #b5a88f;
 }
 
 /* 编辑输入框 */
@@ -282,28 +291,29 @@ body.group-detail .container {
 
 /* 删除按钮 */
 .delete-btn {
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   border: none;
-  background: #ff6b6b;
-  color: white;
-  border-radius: 6px;
+  background: transparent;
+  color: #d4a574;
+  border-radius: 3px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   font-size: 18px;
 }
 
 .todo-item:hover .delete-btn {
-  opacity: 1;
+  opacity: 0.5;
 }
 
 .delete-btn:hover {
-  background: #ff5252;
-  transform: scale(1.1);
+  opacity: 1 !important;
+  background: rgba(231, 76, 60, 0.1);
+  color: #e74c3c;
 }
 
 /* 底部区域 */
@@ -313,30 +323,30 @@ body.group-detail .container {
   align-items: center;
   padding: 3px 0;
   margin-top: 0;
-  background-color: #f5f5f5;
+  background-color: #fefaed;
 }
 
 .todo-count {
-  font-size: 13px;
-  color: #666;
-  font-weight: 500;
+  font-size: 12px;
+  color: #9d8d6f;
+  font-weight: 400;
 }
 
 .clear-btn {
-  padding: 8px 16px;
+  padding: 6px 12px;
   font-size: 12px;
-  border: none;
-  background: #f0f0f0;
-  color: #666;
-  border-radius: 6px;
+  border: 1px solid #e8dcc3;
+  background: transparent;
+  color: #7d6c4d;
+  border-radius: 3px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  font-weight: 500;
+  transition: all 0.15s ease;
+  font-weight: 400;
 }
 
 .clear-btn:hover {
-  background: #e0e0e0;
-  color: #333;
+  background: #f5f0e1;
+  border-color: #d4c7a8;
 }
 
 .clear-btn:active {
@@ -347,7 +357,7 @@ body.group-detail .container {
 .empty-state {
   text-align: center;
   padding: 40px 20px;
-  color: #999;
+  color: #b5a88f;
 }
 
 .empty-state-icon {
@@ -386,38 +396,38 @@ body.group-detail .container {
 
 /* 分组列表 */
 .group-list {
-  gap: 12px;
+  gap: 8px;
 }
 
 /* 分组项 */
 .group-item {
   cursor: pointer;
-  padding: 16px;
-  transition: all 0.3s ease;
+  padding: 12px;
+  transition: all 0.15s ease;
 }
 
 .group-item:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  background: #ffffff;
+  border-color: #e8dcc3;
 }
 
 .group-item:active {
-  transform: translateY(-1px);
+  transform: scale(0.98);
 }
 
 /* 分组图标 */
 .group-icon {
-  font-size: 24px;
-  margin-right: 12px;
+  font-size: 20px;
+  margin-right: 10px;
   flex-shrink: 0;
 }
 
 /* 分组名称 */
 .group-name {
   flex: 1;
-  font-size: 15px;
-  font-weight: 500;
-  color: #333;
+  font-size: 14px;
+  font-weight: 400;
+  color: #5c4f3a;
   word-break: break-word;
 }
 
@@ -431,13 +441,14 @@ body.group-detail .container {
 
 /* 分组计数徽章 */
 .group-count-badge {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  min-width: 40px;
+  background: #f5f0e1;
+  color: #7d6c4d;
+  padding: 3px 8px;
+  border-radius: 10px;
+  border: 1px solid #e8dcc3;
+  font-size: 11px;
+  font-weight: 400;
+  min-width: 35px;
   text-align: center;
   white-space: nowrap;
 }
@@ -450,7 +461,7 @@ body.group-detail .container {
 /* 删除模式下的分组项样式 */
 .group-item.delete-mode {
   background: #fff5f5;
-  border: 2px solid #ff6b6b;
+  border: 1px solid #ff6b6b;
 }
 
 /* 响应式调整 */
