@@ -279,7 +279,17 @@ function renderTodos() {
       const text = document.createElement('span');
       text.className = 'todo-text';
       text.textContent = todo.text;
-      text.addEventListener('dblclick', () => startEdit(todo.id));
+      text.title = '双击编辑';
+      // 双击编辑
+      text.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        startEdit(todo.id);
+      });
+      // 阻止文本区域的拖动
+      text.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+      });
       
       const deleteBtn = document.createElement('button');
       deleteBtn.className = 'delete-btn';
@@ -290,12 +300,19 @@ function renderTodos() {
       li.appendChild(text);
       li.appendChild(deleteBtn);
       
-      // 拖动排序
+      // 拖动排序 - 只在非文本区域拖动
       li.setAttribute('draggable', 'true');
       li.addEventListener('dragstart', handleTodoDragStart);
       li.addEventListener('dragover', handleTodoDragOver);
       li.addEventListener('drop', handleTodoDrop);
       li.addEventListener('dragend', handleTodoDragEnd);
+      
+      // 阻止文本区域的拖动事件冒泡
+      text.addEventListener('dragstart', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      });
       
       todoList.appendChild(li);
     });
@@ -306,14 +323,38 @@ function renderTodos() {
 
 // 拖动排序相关
 let draggedTodoItem = null;
+let dragStartPos = null;
+let isDragging = false;
 
 function handleTodoDragStart(e) {
+  // 如果点击的是文本区域，不启动拖动（允许双击编辑）
+  if (e.target.classList.contains('todo-text')) {
+    e.preventDefault();
+    return false;
+  }
+  
   draggedTodoItem = this;
+  dragStartPos = { x: e.clientX, y: e.clientY };
+  isDragging = false;
   this.style.opacity = '0.5';
   e.dataTransfer.effectAllowed = 'move';
 }
 
 function handleTodoDragOver(e) {
+  if (!draggedTodoItem) return;
+  
+  // 检查是否真的在拖动（移动了一定距离）
+  if (dragStartPos && !isDragging) {
+    const deltaX = Math.abs(e.clientX - dragStartPos.x);
+    const deltaY = Math.abs(e.clientY - dragStartPos.y);
+    if (deltaX < 5 && deltaY < 5) {
+      return; // 移动距离太小，可能是点击，不处理拖动
+    }
+    isDragging = true;
+  }
+  
+  if (!isDragging) return;
+  
   e.preventDefault();
   e.dataTransfer.dropEffect = 'move';
   
@@ -343,6 +384,8 @@ function handleTodoDrop(e) {
 function handleTodoDragEnd(e) {
   this.style.opacity = '1';
   draggedTodoItem = null;
+  dragStartPos = null;
+  isDragging = false;
 }
 
 function getDragAfterTodoElement(container, y) {

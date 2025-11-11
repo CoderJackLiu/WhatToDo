@@ -317,9 +317,17 @@ body.group-detail .todo-item:hover {
   color: #5c4f3a;
   line-height: 1.5;
   word-break: break-word;
-  cursor: pointer;
+  cursor: text;
   -webkit-user-select: text;
   user-select: text;
+  transition: background-color 0.15s ease;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  border-radius: 3px;
+}
+
+.todo-text:hover {
+  background-color: rgba(125, 108, 77, 0.08);
 }
 
 .todo-item.completed .todo-text {
@@ -330,13 +338,20 @@ body.group-detail .todo-item:hover {
 /* 编辑输入框 */
 .todo-edit-input {
   flex: 1;
-  padding: 6px 10px;
+  padding: 4px 8px;
   font-size: 14px;
-  border: 2px solid #667eea;
-  border-radius: 6px;
+  border: 2px solid #a89875;
+  border-radius: 4px;
   outline: none;
-  background-color: #f9f9f9;
+  background-color: #ffffff;
+  color: #5c4f3a;
   margin-right: 12px;
+  transition: border-color 0.15s ease;
+}
+
+.todo-edit-input:focus {
+  border-color: #7d6c4d;
+  background-color: #ffffff;
 }
 
 /* 删除按钮 */
@@ -461,11 +476,48 @@ body.group-detail .footer.visible {
   gap: 8px;
 }
 
+/* 新建分组区域 */
+.add-group-section {
+  padding: 8px 0;
+  border-top: 1px solid #e8dcc3;
+  margin-top: 8px;
+}
+
+.add-group-btn {
+  width: 100%;
+  padding: 10px 16px;
+  font-size: 14px;
+  border: 1px dashed #d4c7a8;
+  background: transparent;
+  color: #7d6c4d;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  font-weight: 400;
+}
+
+.add-group-btn:hover {
+  background: #f5f0e1;
+  border-color: #a89875;
+  border-style: solid;
+}
+
+.add-group-btn:active {
+  transform: scale(0.98);
+  background: #eee8d8;
+}
+
 /* 分组项 */
 .group-item {
   cursor: pointer;
   padding: 12px;
   transition: all 0.15s ease;
+  min-height: 60px;
+  display: flex;
+  align-items: flex-start;
 }
 
 .group-item[draggable="true"] {
@@ -492,21 +544,31 @@ body.group-detail .footer.visible {
   flex-shrink: 0;
 }
 
-/* 分组名称 */
-.group-name {
+/* 分组内容预览 */
+.group-content {
   flex: 1;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 400;
   color: #5c4f3a;
+  line-height: 1.5;
   word-break: break-word;
+  white-space: pre-line;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: calc(1.5em * 5);
 }
 
 /* 右侧内容 */
 .group-right-content {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   margin-left: auto;
+  flex-shrink: 0;
+  padding-top: 2px;
 }
 
 /* 分组计数徽章 */

@@ -1,5 +1,4 @@
 // DOM 元素
-const groupInput = document.getElementById('group-input');
 const addGroupBtn = document.getElementById('add-group-btn');
 const groupList = document.getElementById('group-list');
 const groupCount = document.getElementById('group-count');
@@ -46,11 +45,6 @@ async function saveGroups() {
 function bindEvents() {
   // 添加分组
   addGroupBtn.addEventListener('click', addGroup);
-  groupInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      addGroup();
-    }
-  });
   
   // 窗口控制
   minimizeBtn.addEventListener('click', () => {
@@ -69,25 +63,21 @@ function generateId() {
 
 // 添加分组
 function addGroup() {
-  const name = groupInput.value.trim();
-  
-  if (!name) {
-    return;
-  }
-  
   const newGroup = {
     id: generateId(),
-    name: name,
+    name: '', // 不再需要名称
     todos: [],
     createdAt: Date.now(),
     updatedAt: Date.now()
   };
   
   groups.unshift(newGroup);
-  groupInput.value = '';
   
   saveGroups();
   renderGroups();
+  
+  // 自动打开新创建的分组
+  openGroup(newGroup.id, '');
 }
 
 // 删除分组
@@ -112,49 +102,39 @@ function deleteGroup(id) {
 
 // 打开分组
 function openGroup(id, name) {
-  window.electronAPI.openGroup(id, name);
+  // 如果没有名称，使用默认名称
+  const group = groups.find(g => g.id === id);
+  const displayName = group && group.name ? group.name : '未命名分组';
+  window.electronAPI.openGroup(id, displayName);
 }
 
-// 编辑分组名称
-function startEdit(id) {
+
+// 生成任务缩略内容（最多5行）
+function getGroupPreviewText(todos) {
+  if (!todos || todos.length === 0) {
+    return '暂无待办事项';
+  }
   
-  const item = document.querySelector(`[data-group-id="${id}"]`);
-  if (!item) return;
+  const maxLines = 5;
+  const previewTodos = todos.slice(0, maxLines);
+  const hasMore = todos.length > maxLines;
   
-  const group = groups.find(g => g.id === id);
-  if (!group) return;
-  
-  const nameElement = item.querySelector('.group-name');
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.className = 'todo-edit-input';
-  input.value = group.name;
-  
-  nameElement.replaceWith(input);
-  input.focus();
-  input.select();
-  
-  const saveEdit = () => {
-    const newName = input.value.trim();
-    if (newName) {
-      group.name = newName;
-      group.updatedAt = Date.now();
-      saveGroups();
+  let previewText = previewTodos.map((todo) => {
+    const prefix = todo.completed ? '✓' : '○';
+    // 每行最多显示45个字符
+    const maxLength = 45;
+    let text = todo.text;
+    if (text.length > maxLength) {
+      text = text.substring(0, maxLength) + '...';
     }
-    renderGroups();
-  };
+    return `${prefix} ${text}`;
+  }).join('\n');
   
-  input.addEventListener('blur', saveEdit);
-  input.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      saveEdit();
-    }
-  });
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      renderGroups();
-    }
-  });
+  if (hasMore) {
+    previewText += `\n...还有 ${todos.length - maxLines} 项`;
+  }
+  
+  return previewText;
 }
 
 // 渲染分组列表
@@ -180,10 +160,11 @@ function renderGroups() {
       icon.className = 'group-icon';
       icon.textContent = '📁';
       
-      // 分组名称
-      const name = document.createElement('span');
-      name.className = 'group-name';
-      name.textContent = group.name;
+      // 分组内容预览
+      const content = document.createElement('div');
+      content.className = 'group-content';
+      const todos = group.todos || [];
+      content.textContent = getGroupPreviewText(todos);
       
       // 右侧内容容器
       const rightContent = document.createElement('div');
@@ -192,8 +173,8 @@ function renderGroups() {
       // 待办数量徽章
       const count = document.createElement('span');
       count.className = 'group-count-badge';
-      const totalCount = group.todos ? group.todos.length : 0;
-      const completedCount = group.todos ? group.todos.filter(t => t.completed).length : 0;
+      const totalCount = todos.length;
+      const completedCount = todos.filter(t => t.completed).length;
       count.textContent = totalCount > 0 ? `${completedCount}/${totalCount}` : '0';
       
       // 删除按钮（悬停时显示）
@@ -210,18 +191,12 @@ function renderGroups() {
       rightContent.appendChild(deleteBtn);
       
       li.appendChild(icon);
-      li.appendChild(name);
+      li.appendChild(content);
       li.appendChild(rightContent);
       
       // 点击打开分组
       li.addEventListener('click', () => {
         openGroup(group.id, group.name);
-      });
-      
-      // 双击编辑分组名称
-      name.addEventListener('dblclick', (e) => {
-        e.stopPropagation();
-        startEdit(group.id);
       });
       
       // 拖动排序
@@ -240,14 +215,33 @@ function renderGroups() {
 
 // 拖动排序相关
 let draggedItem = null;
+let dragStartPos = null;
 
 function handleDragStart(e) {
+  // 如果点击的是分组内容区域，不启动拖动
+  if (e.target.classList.contains('group-content')) {
+    e.preventDefault();
+    return false;
+  }
+  
   draggedItem = this;
+  dragStartPos = { x: e.clientX, y: e.clientY };
   this.style.opacity = '0.5';
   e.dataTransfer.effectAllowed = 'move';
 }
 
 function handleDragOver(e) {
+  if (!draggedItem) return;
+  
+  // 检查是否真的在拖动（移动了一定距离）
+  if (dragStartPos) {
+    const deltaX = Math.abs(e.clientX - dragStartPos.x);
+    const deltaY = Math.abs(e.clientY - dragStartPos.y);
+    if (deltaX < 5 && deltaY < 5) {
+      return; // 移动距离太小，可能是点击，不处理拖动
+    }
+  }
+  
   e.preventDefault();
   e.dataTransfer.dropEffect = 'move';
   
@@ -277,6 +271,7 @@ function handleDrop(e) {
 function handleDragEnd(e) {
   this.style.opacity = '1';
   draggedItem = null;
+  dragStartPos = null;
 }
 
 function getDragAfterElement(container, y) {
