@@ -3,13 +3,11 @@ const groupInput = document.getElementById('group-input');
 const addGroupBtn = document.getElementById('add-group-btn');
 const groupList = document.getElementById('group-list');
 const groupCount = document.getElementById('group-count');
-const deleteModeBtn = document.getElementById('delete-mode-btn');
 const minimizeBtn = document.getElementById('minimize-btn');
 const closeBtn = document.getElementById('close-btn');
 
 // 状态
 let groups = [];
-let deleteMode = false;
 
 // 初始化应用
 async function init() {
@@ -53,9 +51,6 @@ function bindEvents() {
       addGroup();
     }
   });
-  
-  // 管理模式切换
-  deleteModeBtn.addEventListener('click', toggleDeleteMode);
   
   // 窗口控制
   minimizeBtn.addEventListener('click', () => {
@@ -120,19 +115,8 @@ function openGroup(id, name) {
   window.electronAPI.openGroup(id, name);
 }
 
-// 切换删除模式
-function toggleDeleteMode() {
-  deleteMode = !deleteMode;
-  deleteModeBtn.textContent = deleteMode ? '完成' : '管理模式';
-  deleteModeBtn.style.background = deleteMode ? '#ff6b6b' : '#f0f0f0';
-  deleteModeBtn.style.color = deleteMode ? 'white' : '#666';
-  
-  renderGroups();
-}
-
 // 编辑分组名称
 function startEdit(id) {
-  if (deleteMode) return;
   
   const item = document.querySelector(`[data-group-id="${id}"]`);
   if (!item) return;
@@ -201,53 +185,113 @@ function renderGroups() {
       name.className = 'group-name';
       name.textContent = group.name;
       
-      // 待办数量
+      // 右侧内容容器
+      const rightContent = document.createElement('div');
+      rightContent.className = 'group-right-content';
+      
+      // 待办数量徽章
       const count = document.createElement('span');
       count.className = 'group-count-badge';
       const totalCount = group.todos ? group.todos.length : 0;
       const completedCount = group.todos ? group.todos.filter(t => t.completed).length : 0;
       count.textContent = totalCount > 0 ? `${completedCount}/${totalCount}` : '0';
       
-      // 右侧内容容器
-      const rightContent = document.createElement('div');
-      rightContent.className = 'group-right-content';
-      rightContent.appendChild(count);
+      // 删除按钮（悬停时显示）
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'delete-btn';
+      deleteBtn.textContent = '×';
+      deleteBtn.title = '删除分组';
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteGroup(group.id);
+      });
       
-      if (deleteMode) {
-        // 删除模式：显示删除按钮
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'delete-btn visible';
-        deleteBtn.textContent = '×';
-        deleteBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          deleteGroup(group.id);
-        });
-        rightContent.appendChild(deleteBtn);
-        
-        li.addEventListener('click', () => {
-          deleteGroup(group.id);
-        });
-      } else {
-        // 正常模式：点击打开，双击编辑
-        li.addEventListener('click', () => {
-          openGroup(group.id, group.name);
-        });
-        
-        li.addEventListener('dblclick', (e) => {
-          e.stopPropagation();
-          startEdit(group.id);
-        });
-      }
+      rightContent.appendChild(count);
+      rightContent.appendChild(deleteBtn);
       
       li.appendChild(icon);
       li.appendChild(name);
       li.appendChild(rightContent);
+      
+      // 点击打开分组
+      li.addEventListener('click', () => {
+        openGroup(group.id, group.name);
+      });
+      
+      // 双击编辑分组名称
+      name.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        startEdit(group.id);
+      });
+      
+      // 拖动排序
+      li.setAttribute('draggable', 'true');
+      li.addEventListener('dragstart', handleDragStart);
+      li.addEventListener('dragover', handleDragOver);
+      li.addEventListener('drop', handleDrop);
+      li.addEventListener('dragend', handleDragEnd);
       
       groupList.appendChild(li);
     });
   }
   
   updateCount();
+}
+
+// 拖动排序相关
+let draggedItem = null;
+
+function handleDragStart(e) {
+  draggedItem = this;
+  this.style.opacity = '0.5';
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  
+  const afterElement = getDragAfterElement(groupList, e.clientY);
+  if (afterElement == null) {
+    groupList.appendChild(draggedItem);
+  } else {
+    groupList.insertBefore(draggedItem, afterElement);
+  }
+}
+
+function handleDrop(e) {
+  e.stopPropagation();
+  e.preventDefault();
+  
+  // 更新数据顺序
+  const items = Array.from(groupList.querySelectorAll('.group-item'));
+  const newGroups = items.map(item => {
+    const groupId = item.getAttribute('data-group-id');
+    return groups.find(g => g.id === groupId);
+  }).filter(g => g);
+  
+  groups = newGroups;
+  saveGroups();
+}
+
+function handleDragEnd(e) {
+  this.style.opacity = '1';
+  draggedItem = null;
+}
+
+function getDragAfterElement(container, y) {
+  const draggableElements = [...container.querySelectorAll('.group-item:not(.dragging)')];
+  
+  return draggableElements.reduce((closest, child) => {
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    
+    if (offset < 0 && offset > closest.offset) {
+      return { offset: offset, element: child };
+    } else {
+      return closest;
+    }
+  }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
 // 更新计数

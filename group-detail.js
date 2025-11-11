@@ -290,11 +290,74 @@ function renderTodos() {
       li.appendChild(text);
       li.appendChild(deleteBtn);
       
+      // 拖动排序
+      li.setAttribute('draggable', 'true');
+      li.addEventListener('dragstart', handleTodoDragStart);
+      li.addEventListener('dragover', handleTodoDragOver);
+      li.addEventListener('drop', handleTodoDrop);
+      li.addEventListener('dragend', handleTodoDragEnd);
+      
       todoList.appendChild(li);
     });
   }
   
   updateCount();
+}
+
+// 拖动排序相关
+let draggedTodoItem = null;
+
+function handleTodoDragStart(e) {
+  draggedTodoItem = this;
+  this.style.opacity = '0.5';
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function handleTodoDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  
+  const afterElement = getDragAfterTodoElement(todoList, e.clientY);
+  if (afterElement == null) {
+    todoList.appendChild(draggedTodoItem);
+  } else {
+    todoList.insertBefore(draggedTodoItem, afterElement);
+  }
+}
+
+function handleTodoDrop(e) {
+  e.stopPropagation();
+  e.preventDefault();
+  
+  // 更新数据顺序
+  const items = Array.from(todoList.querySelectorAll('.todo-item'));
+  const newTodos = items.map(item => {
+    const todoId = item.getAttribute('data-id');
+    return todos.find(t => t.id === todoId);
+  }).filter(t => t);
+  
+  todos = newTodos;
+  saveGroupData();
+}
+
+function handleTodoDragEnd(e) {
+  this.style.opacity = '1';
+  draggedTodoItem = null;
+}
+
+function getDragAfterTodoElement(container, y) {
+  const draggableElements = [...container.querySelectorAll('.todo-item:not(.dragging)')];
+  
+  return draggableElements.reduce((closest, child) => {
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    
+    if (offset < 0 && offset > closest.offset) {
+      return { offset: offset, element: child };
+    } else {
+      return closest;
+    }
+  }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
 // 更新计数

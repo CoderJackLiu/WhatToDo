@@ -243,6 +243,15 @@ body.group-detail .input-section.visible {
   border-radius: 3px;
   transition: all 0.15s ease;
   animation: slideIn 0.2s ease;
+  cursor: move;
+}
+
+.todo-item[draggable="true"] {
+  cursor: grab;
+}
+
+.todo-item[draggable="true"]:active {
+  cursor: grabbing;
 }
 
 @keyframes slideIn {
@@ -431,6 +440,14 @@ body.group-detail .footer.visible {
   cursor: pointer;
   padding: 12px;
   transition: all 0.15s ease;
+}
+
+.group-item[draggable="true"] {
+  cursor: grab;
+}
+
+.group-item[draggable="true"]:active {
+  cursor: grabbing;
 }
 
 .group-item:hover {
