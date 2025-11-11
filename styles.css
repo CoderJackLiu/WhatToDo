@@ -107,6 +107,14 @@ body.group-detail .titlebar.visible {
   position: relative;
 }
 
+.titlebar-button.pin img {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+}
+
 .titlebar-button.pin:hover {
   background: rgba(125, 108, 77, 0.1);
 }

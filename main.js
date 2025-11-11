@@ -2,6 +2,12 @@ const { app, BrowserWindow, ipcMain, Menu, Tray } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
+// 禁用 GPU 硬件加速以解决 GPU 进程错误
+app.disableHardwareAcceleration();
+// 或者使用命令行参数方式（如果上面的方法不够）
+app.commandLine.appendSwitch('disable-gpu');
+app.commandLine.appendSwitch('disable-gpu-compositing');
+
 let mainWindow;
 let groupWindows = new Map(); // 存储所有分组窗口
 let tray;
