@@ -215,6 +215,11 @@ body.group-detail .input-section.visible {
   gap: 10px;
 }
 
+/* 分组详情页面的待办列表间距更紧凑 */
+body.group-detail .todo-list {
+  gap: 4px;
+}
+
 /* 滚动条样式 */
 .todos-container::-webkit-scrollbar {
   width: 6px;
@@ -268,6 +273,19 @@ body.group-detail .input-section.visible {
 .todo-item:hover {
   background: #ffffff;
   border-color: #e8dcc3;
+}
+
+/* 分组详情页面的待办项样式 - 与背景一致，更紧凑 */
+body.group-detail .todo-item {
+  padding: 6px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
+
+body.group-detail .todo-item:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border: none;
 }
 
 .todo-item.completed {
