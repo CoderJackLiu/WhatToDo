@@ -11,11 +11,28 @@ body {
   overflow: hidden;
   -webkit-user-select: none;
   user-select: none;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* 亮色主题（默认） */
+body.light-theme {
+  background-color: #fefaed;
+  color: #5c4f3a;
+}
+
+/* 暗色主题 */
+body.dark-theme {
+  background-color: #1e1e1e;
+  color: #e0e0e0;
 }
 
 /* 分组详情页面样式 */
 body.group-detail {
   background-color: #fefaed;
+}
+
+body.dark-theme.group-detail {
+  background-color: #1e1e1e;
 }
 
 /* 自定义标题栏 */
@@ -28,8 +45,22 @@ body.group-detail {
   color: #7d6c4d;
   padding: 0 12px;
   -webkit-app-region: drag;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease, background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
   border-bottom: 1px solid #e8dcc3;
+}
+
+body.dark-theme .titlebar {
+  background: #2d2d2d !important;
+  color: #e0e0e0 !important;
+  border-bottom-color: #404040 !important;
+}
+
+body.dark-theme .titlebar-title {
+  color: #e0e0e0 !important;
+}
+
+body.dark-theme .titlebar-button {
+  color: #e0e0e0 !important;
 }
 
 /* 主窗口标题栏固定在顶部 */
@@ -47,8 +78,23 @@ body.group-detail .titlebar {
   z-index: 1000;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.2s ease, visibility 0.2s ease;
+  transition: opacity 0.2s ease, visibility 0.2s ease, background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
   /* 主题颜色将通过JavaScript动态设置 */
+}
+
+/* 暗色模式下分组详情窗口的标题栏默认颜色 */
+body.dark-theme.group-detail .titlebar {
+  background: #2d2d2d !important;
+  color: #e0e0e0 !important;
+  border-bottom-color: #404040 !important;
+}
+
+body.dark-theme.group-detail .titlebar-title {
+  color: #e0e0e0 !important;
+}
+
+body.dark-theme.group-detail .titlebar-button {
+  color: #e0e0e0 !important;
 }
 
 body.group-detail .titlebar.visible {
@@ -164,6 +210,11 @@ body.group-detail .titlebar-button:hover {
   height: calc(100vh - 32px);
   padding: 15px 15px 5px 15px;
   background-color: #fefaed;
+  transition: background-color 0.3s ease;
+}
+
+body.dark-theme .container {
+  background-color: #1e1e1e;
 }
 
 /* 分组窗口的主容器 */
@@ -171,6 +222,10 @@ body.group-detail .container {
   height: 100vh;
   padding: 50px 15px 5px 15px;
   background-color: #fefaed;
+}
+
+body.dark-theme.group-detail .container {
+  background-color: #1e1e1e;
 }
 
 /* 输入区域 */
@@ -194,6 +249,22 @@ body.group-detail .input-section.visible {
   visibility: visible;
 }
 
+body.dark-theme.group-detail .todo-input {
+  background-color: #2d2d2d;
+  border-color: #404040;
+  color: #e0e0e0;
+}
+
+body.dark-theme.group-detail .todo-input::placeholder {
+  color: #666666;
+}
+
+body.dark-theme.group-detail .add-btn {
+  background: #2d2d2d;
+  border-color: #404040;
+  color: #e0e0e0;
+}
+
 .todo-input {
   flex: 1;
   padding: 8px 12px;
@@ -206,8 +277,18 @@ body.group-detail .input-section.visible {
   color: #5c4f3a;
 }
 
+body.dark-theme .todo-input {
+  background-color: #2d2d2d;
+  border-color: #404040;
+  color: #e0e0e0;
+}
+
 .todo-input::placeholder {
   color: #b5a88f;
+}
+
+body.dark-theme .todo-input::placeholder {
+  color: #666666;
 }
 
 
@@ -229,6 +310,12 @@ body.group-detail .input-section.visible {
   align-items: center;
   justify-content: center;
   transition: all 0.15s ease;
+}
+
+body.dark-theme .add-btn {
+  background: #2d2d2d;
+  border-color: #404040;
+  color: #e0e0e0;
 }
 
 
@@ -279,6 +366,14 @@ body.group-detail .todo-list {
   background: #b0b0b0;
 }
 
+body.dark-theme .todos-container::-webkit-scrollbar-thumb {
+  background: #505050;
+}
+
+body.dark-theme .todos-container::-webkit-scrollbar-thumb:hover {
+  background: #606060;
+}
+
 /* 待办项 */
 .todo-item {
   display: flex;
@@ -291,6 +386,12 @@ body.group-detail .todo-list {
   animation: slideIn 0.2s ease;
   cursor: move;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+body.dark-theme .todo-item {
+  background: #2d2d2d;
+  border-color: #404040;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .todo-item[draggable="true"] {
@@ -319,6 +420,12 @@ body.group-detail .todo-list {
   transform: translateY(-1px);
 }
 
+body.dark-theme .todo-item:hover {
+  background: #353535;
+  border-color: #505050;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
 /* 分组详情页面的待办项样式 - 与背景一致，更紧凑 */
 body.group-detail .todo-item {
   padding: 4px 8px;
@@ -328,11 +435,19 @@ body.group-detail .todo-item {
   box-shadow: none;
 }
 
+body.dark-theme.group-detail .todo-item {
+  background: transparent;
+}
+
 body.group-detail .todo-item:hover {
   background: rgba(255, 255, 255, 0.4);
   border: none;
   transform: none;
   box-shadow: none;
+}
+
+body.dark-theme.group-detail .todo-item:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .todo-item.completed {
@@ -377,10 +492,18 @@ body.group-detail .todo-checkbox {
   border-radius: 3px;
 }
 
+body.dark-theme .todo-text {
+  color: #e0e0e0;
+}
+
 /* 分组详情页面的文本样式 */
 body.group-detail .todo-text {
   font-size: 13px;
   line-height: 1.5;
+}
+
+body.dark-theme.group-detail .todo-text {
+  color: #e0e0e0;
 }
 
 .todo-text:hover {
@@ -451,6 +574,11 @@ body.group-detail .todo-item.completed .todo-text {
   padding: 3px 0;
   margin-top: 0;
   background-color: #fefaed;
+  transition: background-color 0.3s ease;
+}
+
+body.dark-theme .footer {
+  background-color: #1e1e1e;
 }
 
 /* 分组窗口的底部区域默认隐藏 */
@@ -465,10 +593,23 @@ body.group-detail .footer.visible {
   visibility: visible;
 }
 
+body.dark-theme.group-detail .todo-count {
+  color: #a0a0a0;
+}
+
+body.dark-theme.group-detail .clear-btn {
+  border-color: #404040;
+  color: #e0e0e0;
+}
+
 .todo-count {
   font-size: 12px;
   color: #9d8d6f;
   font-weight: 400;
+}
+
+body.dark-theme .todo-count {
+  color: #a0a0a0;
 }
 
 
@@ -482,6 +623,11 @@ body.group-detail .footer.visible {
   cursor: pointer;
   transition: all 0.15s ease;
   font-weight: 400;
+}
+
+body.dark-theme .clear-btn {
+  border-color: #404040;
+  color: #e0e0e0;
 }
 
 
@@ -499,6 +645,10 @@ body.group-detail .footer.visible {
   text-align: center;
   padding: 40px 20px;
   color: #b5a88f;
+}
+
+body.dark-theme .empty-state {
+  color: #a0a0a0;
 }
 
 .empty-state-icon {
@@ -561,6 +711,11 @@ body.group-detail .footer.visible {
   justify-content: center;
   transition: all 0.15s ease;
   font-weight: 400;
+}
+
+body.dark-theme .add-group-btn {
+  border-color: #505050;
+  color: #e0e0e0;
 }
 
 .add-group-btn:hover {
@@ -627,6 +782,10 @@ body.group-detail .footer.visible {
   max-height: calc(1.6em * 5);
 }
 
+body.dark-theme .group-content {
+  color: #e0e0e0;
+}
+
 /* 右侧内容 */
 .group-right-content {
   display: flex;
@@ -648,6 +807,12 @@ body.group-detail .footer.visible {
   min-width: 40px;
   text-align: center;
   white-space: nowrap;
+}
+
+body.dark-theme .group-count-badge {
+  background: #353535;
+  color: #e0e0e0;
+  border-color: #505050;
 }
 
 /* 管理模式下的删除按钮始终可见 */
@@ -766,14 +931,14 @@ body.group-detail .footer.visible {
   right: 12px;
   background: #ffffff;
   border: 1px solid #e8dcc3;
-  border-radius: 8px;
+  border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 2000;
   opacity: 0;
   visibility: hidden;
   transform: translateY(-10px);
   transition: all 0.2s ease;
-  min-width: 280px;
+  min-width: 220px;
   padding: 0;
   overflow: hidden;
 }
@@ -785,8 +950,8 @@ body.group-detail .footer.visible {
 }
 
 .settings-menu-header {
-  padding: 12px 16px;
-  font-size: 13px;
+  padding: 8px 12px;
+  font-size: 12px;
   font-weight: 500;
   color: #5c4f3a;
   border-bottom: 1px solid #e8dcc3;
@@ -794,15 +959,15 @@ body.group-detail .footer.visible {
 }
 
 .settings-content {
-  padding: 8px;
+  padding: 6px;
 }
 
 .settings-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px;
-  border-radius: 6px;
+  padding: 8px 10px;
+  border-radius: 4px;
   transition: background-color 0.15s ease;
 }
 
@@ -818,13 +983,13 @@ body.group-detail .footer.visible {
 }
 
 .settings-item-label > span:first-child {
-  font-size: 13px;
+  font-size: 12px;
   color: #5c4f3a;
   font-weight: 400;
 }
 
 .settings-item-desc {
-  font-size: 11px;
+  font-size: 10px;
   color: #9d8d6f;
   font-weight: 400;
 }
@@ -879,5 +1044,84 @@ body.group-detail .footer.visible {
 
 .toggle-switch input:focus + .toggle-slider {
   box-shadow: 0 0 0 2px rgba(168, 152, 117, 0.2);
+}
+
+/* 主题模式选择器 */
+.theme-mode-selector {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.theme-mode-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 10px;
+  border: 1px solid #e8dcc3;
+  background: #fffef8;
+  color: #5c4f3a;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 10px;
+  min-width: 50px;
+}
+
+.theme-mode-btn:hover {
+  background: #f5f0e1;
+  border-color: #d4c7a8;
+}
+
+.theme-mode-btn.active {
+  background: #a89875;
+  border-color: #a89875;
+  color: #ffffff;
+}
+
+.theme-mode-btn span:first-child {
+  font-size: 14px;
+}
+
+body.dark-theme .theme-mode-btn {
+  background: #2d2d2d;
+  border-color: #404040;
+  color: #e0e0e0;
+}
+
+body.dark-theme .theme-mode-btn:hover {
+  background: #353535;
+  border-color: #505050;
+}
+
+body.dark-theme .theme-mode-btn.active {
+  background: #4a5568;
+  border-color: #4a5568;
+  color: #ffffff;
+}
+
+/* 暗色主题下的设置菜单 */
+body.dark-theme .settings-menu {
+  background: #2d2d2d;
+  border-color: #404040;
+}
+
+body.dark-theme .settings-menu-header {
+  background: #252525;
+  color: #e0e0e0;
+  border-bottom-color: #404040;
+}
+
+body.dark-theme .settings-item:hover {
+  background: #353535;
+}
+
+body.dark-theme .settings-item-label > span:first-child {
+  color: #e0e0e0;
+}
+
+body.dark-theme .settings-item-desc {
+  color: #a0a0a0;
 }
 

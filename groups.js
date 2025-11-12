@@ -7,6 +7,8 @@ const closeBtn = document.getElementById('close-btn');
 const settingsBtn = document.getElementById('settings-btn');
 const settingsMenu = document.getElementById('settings-menu');
 const autoStartToggle = document.getElementById('auto-start-toggle');
+const themeLightBtn = document.getElementById('theme-light-btn');
+const themeDarkBtn = document.getElementById('theme-dark-btn');
 
 // 状态
 let groups = [];
@@ -18,6 +20,11 @@ async function init() {
   await loadSettings();
   bindEvents();
   renderGroups();
+  
+  // 如果没有设置主题，默认使用亮色主题
+  if (!document.body.classList.contains('dark-theme') && !document.body.classList.contains('light-theme')) {
+    document.body.classList.add('light-theme');
+  }
   
   // 监听分组数据变化
   window.electronAPI.onGroupsChanged(async () => {
@@ -55,6 +62,15 @@ function bindEvents() {
   settingsBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     toggleSettingsMenu();
+  });
+  
+  // 主题模式切换
+  themeLightBtn.addEventListener('click', () => {
+    selectThemeMode('light');
+  });
+  
+  themeDarkBtn.addEventListener('click', () => {
+    selectThemeMode('dark');
   });
   
   // 开机自启动开关
@@ -481,11 +497,48 @@ function updateCount() {
 async function loadSettings() {
   try {
     const settings = await window.electronAPI.loadSettings();
-    if (settings && settings.autoStart !== undefined) {
-      autoStartToggle.checked = settings.autoStart;
+    if (settings) {
+      if (settings.autoStart !== undefined) {
+        autoStartToggle.checked = settings.autoStart;
+      }
+      if (settings.themeMode) {
+        applyThemeMode(settings.themeMode);
+      }
     }
   } catch (error) {
     console.error('加载设置失败:', error);
+  }
+}
+
+// 选择主题模式
+async function selectThemeMode(mode) {
+  applyThemeMode(mode);
+  // 保存设置
+  try {
+    const currentSettings = await window.electronAPI.loadSettings() || {};
+    currentSettings.themeMode = mode;
+    await window.electronAPI.saveSettings(currentSettings);
+    // 通知所有打开的分组窗口主题已变化
+    window.electronAPI.notifyThemeChanged();
+  } catch (error) {
+    console.error('保存主题设置失败:', error);
+  }
+}
+
+// 应用主题模式
+function applyThemeMode(mode) {
+  const body = document.body;
+  
+  if (mode === 'dark') {
+    body.classList.add('dark-theme');
+    body.classList.remove('light-theme');
+    themeLightBtn.classList.remove('active');
+    themeDarkBtn.classList.add('active');
+  } else {
+    body.classList.add('light-theme');
+    body.classList.remove('dark-theme');
+    themeLightBtn.classList.add('active');
+    themeDarkBtn.classList.remove('active');
   }
 }
 

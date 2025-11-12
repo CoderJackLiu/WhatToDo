@@ -26,7 +26,7 @@ function ensureDataDir() {
     fs.writeFileSync(groupsPath, JSON.stringify({ groups: [] }, null, 2));
   }
   if (!fs.existsSync(settingsPath)) {
-    fs.writeFileSync(settingsPath, JSON.stringify({ autoStart: false }, null, 2));
+    fs.writeFileSync(settingsPath, JSON.stringify({ autoStart: false, themeMode: 'light' }, null, 2));
   }
 }
 
@@ -236,6 +236,16 @@ ipcMain.on('groups-changed', () => {
   }
 });
 
+// 主题变化通知
+ipcMain.on('theme-changed', () => {
+  // 通知所有打开的分组窗口刷新主题
+  groupWindows.forEach((window) => {
+    if (window && !window.isDestroyed()) {
+      window.webContents.send('theme-changed');
+    }
+  });
+});
+
 // 窗口控制（支持多窗口）
 ipcMain.on('minimize-window', (event) => {
   const window = BrowserWindow.fromWebContents(event.sender);
@@ -274,10 +284,10 @@ ipcMain.handle('load-settings', async () => {
       const data = fs.readFileSync(settingsPath, 'utf-8');
       return JSON.parse(data);
     }
-    return { autoStart: false };
+    return { autoStart: false, themeMode: 'light' };
   } catch (error) {
     console.error('Error loading settings:', error);
-    return { autoStart: false };
+    return { autoStart: false, themeMode: 'light' };
   }
 });
 
@@ -300,8 +310,16 @@ ipcMain.handle('set-auto-start', async (event, enabled) => {
       openAsHidden: false
     });
     
-    // 保存设置
-    const settings = { autoStart: enabled };
+    // 保存设置（保留其他设置）
+    let settings = { autoStart: false, themeMode: 'light' };
+    if (fs.existsSync(settingsPath)) {
+      try {
+        settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+      } catch (e) {
+        // 如果读取失败，使用默认值
+      }
+    }
+    settings.autoStart = enabled;
     fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
     
     return { success: true };

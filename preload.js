@@ -28,6 +28,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 设置管理
   loadSettings: () => ipcRenderer.invoke('load-settings'),
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
-  setAutoStart: (enabled) => ipcRenderer.invoke('set-auto-start', enabled)
+  setAutoStart: (enabled) => ipcRenderer.invoke('set-auto-start', enabled),
+  getThemeMode: () => ipcRenderer.invoke('get-theme-mode'),
+  notifyThemeChanged: () => ipcRenderer.send('theme-changed'),
+  onThemeChanged: (callback) => ipcRenderer.on('theme-changed', () => callback())
 });
 

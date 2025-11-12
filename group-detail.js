@@ -25,16 +25,62 @@ let currentTheme = 'default';
 
 // 初始化应用
 async function init() {
+  // 加载主题模式设置
+  await loadThemeMode();
+  
+  // 默认显示标题栏和底部（新建/打开分组时）
+  showTitlebarAndFooter();
+  
   // 接收分组信息
   window.electronAPI.onGroupInfo((data) => {
     currentGroupId = data.groupId;
     currentGroupName = data.groupName;
     windowTitle.textContent = `${currentGroupName}`;
     loadGroupData();
+    // 确保显示标题栏和底部
+    showTitlebarAndFooter();
   });
   
   // 绑定事件
   bindEvents();
+  
+  // 监听主题变化
+  window.electronAPI.onThemeChanged(async () => {
+    await loadThemeMode();
+    // 重新应用分组主题颜色（标题栏）
+    if (currentTheme) {
+      applyTheme(currentTheme);
+    }
+  });
+}
+
+// 加载主题模式
+async function loadThemeMode() {
+  try {
+    const settings = await window.electronAPI.loadSettings();
+    if (settings && settings.themeMode) {
+      applyThemeMode(settings.themeMode);
+    } else {
+      // 默认使用亮色主题
+      applyThemeMode('light');
+    }
+  } catch (error) {
+    console.error('加载主题模式失败:', error);
+    applyThemeMode('light');
+  }
+}
+
+// 应用主题模式
+function applyThemeMode(mode) {
+  const body = document.body;
+  
+  if (mode === 'dark') {
+    body.classList.add('dark-theme');
+    body.classList.remove('light-theme');
+  } else {
+    body.classList.add('light-theme');
+    body.classList.remove('dark-theme');
+  }
 }
 
 // 加载分组数据
@@ -46,15 +92,22 @@ async function loadGroupData() {
     const group = groups.find(g => g.id === currentGroupId);
     if (group) {
       todos = group.todos || [];
-      // 加载并应用分组的主题
+      // 加载并应用分组的主题（标题栏颜色）
       const groupTheme = group.theme || 'default';
       currentTheme = groupTheme;
-      applyTheme(groupTheme);
+      // 延迟应用主题，确保主题模式已加载
+      setTimeout(() => {
+        applyTheme(groupTheme);
+      }, 100);
       renderTodos();
     }
+    // 确保显示标题栏和底部
+    showTitlebarAndFooter();
   } catch (error) {
     console.error('加载分组数据失败:', error);
     todos = [];
+    // 即使出错也显示标题栏和底部
+    showTitlebarAndFooter();
   }
 }
 
@@ -134,19 +187,37 @@ function bindEvents() {
   setupTitlebarAutoHide();
 }
 
+// 显示标题栏和底部
+function showTitlebarAndFooter() {
+  titlebar.classList.add('visible');
+  inputSection.classList.add('visible');
+  footer.classList.add('visible');
+}
+
+// 隐藏标题栏和底部
+function hideTitlebarAndFooter() {
+  titlebar.classList.remove('visible');
+  inputSection.classList.remove('visible');
+  footer.classList.remove('visible');
+}
+
 // 设置标题栏自动显示隐藏
 function setupTitlebarAutoHide() {
   // 监听窗口焦点变化
+  // 注意：只在失焦时隐藏，获得焦点时保持显示（因为新建/打开时应该显示）
   window.electronAPI.onWindowFocus(() => {
-    titlebar.classList.add('visible');
-    inputSection.classList.add('visible');
-    footer.classList.add('visible');
+    // 获得焦点时显示（如果之前被隐藏了）
+    showTitlebarAndFooter();
   });
   
   window.electronAPI.onWindowBlur(() => {
-    titlebar.classList.remove('visible');
-    inputSection.classList.remove('visible');
-    footer.classList.remove('visible');
+    // 失焦时隐藏（延迟一点，避免快速切换时闪烁）
+    setTimeout(() => {
+      // 检查窗口是否仍然失焦
+      if (!document.hasFocus()) {
+        hideTitlebarAndFooter();
+      }
+    }, 300);
   });
 }
 
@@ -494,23 +565,53 @@ function applyTheme(theme) {
   
   const themeColors = themes[theme];
   const titlebar = document.querySelector('.titlebar');
+  const isDarkMode = document.body.classList.contains('dark-theme');
   
   if (titlebar) {
+    // 根据暗色/亮色模式调整标题栏颜色
+    let bgColor, borderColor, textColor;
+    
+    if (isDarkMode) {
+      // 暗色模式下，标题栏使用深色背景，但边框和文字可以保持主题色调
+      bgColor = '#2d2d2d'; // 固定使用深色背景
+      borderColor = adjustColorForDarkMode(themeColors.border); // 边框保持主题色调但变深
+      textColor = '#e0e0e0'; // 文字使用浅色，确保可读性
+    } else {
+      bgColor = themeColors.bg;
+      borderColor = themeColors.border;
+      textColor = themeColors.text;
+    }
+    
     // 只改变标题栏的背景、边框和文字颜色
-    titlebar.style.backgroundColor = themeColors.bg;
-    titlebar.style.borderBottomColor = themeColors.border;
-    titlebar.style.color = themeColors.text;
+    if (isDarkMode) {
+      // 暗色模式下，使用深色背景，边框可以显示主题色调
+      titlebar.style.setProperty('background-color', bgColor, 'important');
+      titlebar.style.setProperty('border-bottom-color', borderColor, 'important');
+      titlebar.style.setProperty('color', textColor, 'important');
+    } else {
+      titlebar.style.backgroundColor = bgColor;
+      titlebar.style.borderBottomColor = borderColor;
+      titlebar.style.color = textColor;
+    }
     
     // 更新标题栏内的文字和按钮颜色
     const titlebarTitle = titlebar.querySelector('.titlebar-title');
     const titlebarButtons = titlebar.querySelectorAll('.titlebar-button');
     
     if (titlebarTitle) {
-      titlebarTitle.style.color = themeColors.text;
+      if (isDarkMode) {
+        titlebarTitle.style.setProperty('color', textColor, 'important');
+      } else {
+        titlebarTitle.style.color = textColor;
+      }
     }
     
     titlebarButtons.forEach(btn => {
-      btn.style.color = themeColors.text;
+      if (isDarkMode) {
+        btn.style.setProperty('color', textColor, 'important');
+      } else {
+        btn.style.color = textColor;
+      }
     });
     
     // 为标题栏添加CSS变量，用于hover效果
@@ -524,12 +625,12 @@ function applyTheme(theme) {
       } : null;
     };
     
-    const rgb = hexToRgb(themeColors.text);
+    const rgb = hexToRgb(textColor);
     if (rgb) {
       titlebar.style.setProperty('--theme-hover-bg', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)`);
     } else {
       // 如果转换失败，使用通用半透明背景
-      titlebar.style.setProperty('--theme-hover-bg', 'rgba(0, 0, 0, 0.08)');
+      titlebar.style.setProperty('--theme-hover-bg', isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)');
     }
   }
   
@@ -542,6 +643,33 @@ function applyTheme(theme) {
       option.classList.remove('active');
     }
   });
+}
+
+// 为暗色模式调整颜色（使颜色更深但保持色调）
+function adjustColorForDarkMode(hex) {
+  const hexToRgb = (hex) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
+  };
+  
+  const rgbToHex = (r, g, b) => {
+    return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+  };
+  
+  const rgb = hexToRgb(hex);
+  if (!rgb) return hex;
+  
+  // 降低亮度但保持色调
+  const factor = 0.4; // 降低到40%亮度
+  const newR = Math.max(0, Math.min(255, Math.floor(rgb.r * factor)));
+  const newG = Math.max(0, Math.min(255, Math.floor(rgb.g * factor)));
+  const newB = Math.max(0, Math.min(255, Math.floor(rgb.b * factor)));
+  
+  return rgbToHex(newR, newG, newB);
 }
 
 // 选择主题
