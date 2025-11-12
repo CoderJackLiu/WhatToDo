@@ -4,6 +4,9 @@ const groupList = document.getElementById('group-list');
 const groupCount = document.getElementById('group-count');
 const minimizeBtn = document.getElementById('minimize-btn');
 const closeBtn = document.getElementById('close-btn');
+const settingsBtn = document.getElementById('settings-btn');
+const settingsMenu = document.getElementById('settings-menu');
+const autoStartToggle = document.getElementById('auto-start-toggle');
 
 // 状态
 let groups = [];
@@ -12,6 +15,7 @@ let previousGroups = []; // 保存上一次的分组数据，用于增量更新
 // 初始化应用
 async function init() {
   await loadGroups();
+  await loadSettings();
   bindEvents();
   renderGroups();
   
@@ -46,6 +50,25 @@ async function saveGroups() {
 function bindEvents() {
   // 添加分组
   addGroupBtn.addEventListener('click', addGroup);
+  
+  // 设置按钮
+  settingsBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleSettingsMenu();
+  });
+  
+  // 开机自启动开关
+  autoStartToggle.addEventListener('change', (e) => {
+    const enabled = e.target.checked;
+    window.electronAPI.setAutoStart(enabled);
+  });
+  
+  // 点击外部关闭设置菜单
+  document.addEventListener('click', (e) => {
+    if (!settingsMenu.contains(e.target) && !settingsBtn.contains(e.target)) {
+      hideSettingsMenu();
+    }
+  });
   
   // 窗口控制
   minimizeBtn.addEventListener('click', () => {
@@ -452,6 +475,37 @@ function getDragAfterElement(container, y) {
 function updateCount() {
   const totalGroups = groups.length;
   groupCount.textContent = `${totalGroups} 个分组`;
+}
+
+// 加载设置
+async function loadSettings() {
+  try {
+    const settings = await window.electronAPI.loadSettings();
+    if (settings && settings.autoStart !== undefined) {
+      autoStartToggle.checked = settings.autoStart;
+    }
+  } catch (error) {
+    console.error('加载设置失败:', error);
+  }
+}
+
+// 切换设置菜单显示
+function toggleSettingsMenu() {
+  if (settingsMenu.classList.contains('visible')) {
+    hideSettingsMenu();
+  } else {
+    showSettingsMenu();
+  }
+}
+
+// 显示设置菜单
+function showSettingsMenu() {
+  settingsMenu.classList.add('visible');
+}
+
+// 隐藏设置菜单
+function hideSettingsMenu() {
+  settingsMenu.classList.remove('visible');
 }
 
 // 启动应用

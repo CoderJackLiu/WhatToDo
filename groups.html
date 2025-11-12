@@ -13,6 +13,12 @@
       <span class="titlebar-title">TodoList</span>
     </div>
     <div class="titlebar-controls">
+      <button class="titlebar-button settings" id="settings-btn" title="设置">
+        <svg width="12" height="12" viewBox="0 0 12 12">
+          <circle cx="6" cy="6" r="1.5" fill="currentColor"/>
+          <path d="M6 2 L6 3.5 M6 8.5 L6 10 M2 6 L3.5 6 M8.5 6 L10 6" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        </svg>
+      </button>
       <button class="titlebar-button minimize" id="minimize-btn" title="最小化">
         <svg width="12" height="12" viewBox="0 0 12 12">
           <rect x="0" y="5" width="12" height="2" fill="currentColor"/>
@@ -23,6 +29,23 @@
           <path d="M1 1 L11 11 M11 1 L1 11" stroke="currentColor" stroke-width="2" fill="none"/>
         </svg>
       </button>
+    </div>
+  </div>
+
+  <!-- 设置菜单 -->
+  <div class="settings-menu" id="settings-menu">
+    <div class="settings-menu-header">设置</div>
+    <div class="settings-content">
+      <div class="settings-item">
+        <div class="settings-item-label">
+          <span>随系统启动</span>
+          <span class="settings-item-desc">应用将在系统启动时自动运行</span>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="auto-start-toggle">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
     </div>
   </div>
 

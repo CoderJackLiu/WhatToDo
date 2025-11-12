@@ -15,6 +15,7 @@ let tray;
 // 数据文件路径
 const dataDir = path.join(app.getPath('userData'), 'data');
 const groupsPath = path.join(dataDir, 'groups.json'); // 分组数据
+const settingsPath = path.join(dataDir, 'settings.json'); // 设置数据
 
 // 确保数据目录存在
 function ensureDataDir() {
@@ -23,6 +24,9 @@ function ensureDataDir() {
   }
   if (!fs.existsSync(groupsPath)) {
     fs.writeFileSync(groupsPath, JSON.stringify({ groups: [] }, null, 2));
+  }
+  if (!fs.existsSync(settingsPath)) {
+    fs.writeFileSync(settingsPath, JSON.stringify({ autoStart: false }, null, 2));
   }
 }
 
@@ -157,6 +161,22 @@ function createTray() {
 // 应用准备就绪
 app.whenReady().then(() => {
   ensureDataDir();
+  
+  // 加载设置并应用开机自启动
+  try {
+    if (fs.existsSync(settingsPath)) {
+      const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+      if (settings.autoStart) {
+        app.setLoginItemSettings({
+          openAtLogin: true,
+          openAsHidden: false
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error loading auto start settings:', error);
+  }
+  
   createWindow();
   createTray();
   
@@ -245,5 +265,49 @@ ipcMain.on('toggle-always-on-top', (event) => {
 // 获取用户数据路径
 ipcMain.handle('get-user-data-path', () => {
   return app.getPath('userData');
+});
+
+// 加载设置
+ipcMain.handle('load-settings', async () => {
+  try {
+    if (fs.existsSync(settingsPath)) {
+      const data = fs.readFileSync(settingsPath, 'utf-8');
+      return JSON.parse(data);
+    }
+    return { autoStart: false };
+  } catch (error) {
+    console.error('Error loading settings:', error);
+    return { autoStart: false };
+  }
+});
+
+// 保存设置
+ipcMain.handle('save-settings', async (event, settings) => {
+  try {
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+    return { success: true };
+  } catch (error) {
+    console.error('Error saving settings:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// 设置开机自启动
+ipcMain.handle('set-auto-start', async (event, enabled) => {
+  try {
+    app.setLoginItemSettings({
+      openAtLogin: enabled,
+      openAsHidden: false
+    });
+    
+    // 保存设置
+    const settings = { autoStart: enabled };
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error setting auto start:', error);
+    return { success: false, error: error.message };
+  }
 });
 

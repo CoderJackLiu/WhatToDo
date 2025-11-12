@@ -23,6 +23,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onWindowBlur: (callback) => ipcRenderer.on('window-blur', () => callback()),
   
   // 获取用户数据路径
-  getUserDataPath: () => ipcRenderer.invoke('get-user-data-path')
+  getUserDataPath: () => ipcRenderer.invoke('get-user-data-path'),
+  
+  // 设置管理
+  loadSettings: () => ipcRenderer.invoke('load-settings'),
+  saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
+  setAutoStart: (enabled) => ipcRenderer.invoke('set-auto-start', enabled)
 });
 
