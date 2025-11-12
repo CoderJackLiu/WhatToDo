@@ -7,6 +7,7 @@ const closeBtn = document.getElementById('close-btn');
 
 // 状态
 let groups = [];
+let previousGroups = []; // 保存上一次的分组数据，用于增量更新
 
 // 初始化应用
 async function init() {
@@ -17,7 +18,7 @@ async function init() {
   // 监听分组数据变化
   window.electronAPI.onGroupsChanged(async () => {
     await loadGroups();
-    renderGroups();
+    updateGroups(); // 使用增量更新而不是完全重新渲染
   });
 }
 
@@ -74,7 +75,7 @@ function addGroup() {
   groups.unshift(newGroup);
   
   saveGroups();
-  renderGroups();
+  updateGroups(); // 使用增量更新
   
   // 自动打开新创建的分组
   openGroup(newGroup.id, '');
@@ -94,7 +95,7 @@ function deleteGroup(id) {
       setTimeout(() => {
         groups.splice(index, 1);
         saveGroups();
-        renderGroups();
+        updateGroups(); // 使用增量更新
       }, 300);
     }
   }
@@ -137,7 +138,191 @@ function getGroupPreviewText(todos) {
   return previewText;
 }
 
-// 渲染分组列表
+// 创建单个分组项
+function createGroupItem(group) {
+  const li = document.createElement('li');
+  li.className = 'todo-item group-item';
+  li.setAttribute('data-group-id', group.id);
+  
+  // 分组内容预览
+  const content = document.createElement('div');
+  content.className = 'group-content';
+  const todos = group.todos || [];
+  content.textContent = getGroupPreviewText(todos);
+  
+  // 右侧内容容器
+  const rightContent = document.createElement('div');
+  rightContent.className = 'group-right-content';
+  
+  // 待办数量徽章
+  const count = document.createElement('span');
+  count.className = 'group-count-badge';
+  const totalCount = todos.length;
+  const completedCount = todos.filter(t => t.completed).length;
+  count.textContent = totalCount > 0 ? `${completedCount}/${totalCount}` : '0';
+  
+  // 删除按钮（悬停时显示）
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'delete-btn';
+  deleteBtn.textContent = '×';
+  deleteBtn.title = '删除分组';
+  deleteBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    deleteGroup(group.id);
+  });
+  
+  rightContent.appendChild(count);
+  rightContent.appendChild(deleteBtn);
+  
+  li.appendChild(content);
+  li.appendChild(rightContent);
+  
+  // 点击打开分组
+  li.addEventListener('click', () => {
+    openGroup(group.id, group.name);
+  });
+  
+  // 拖动排序
+  li.setAttribute('draggable', 'true');
+  li.addEventListener('dragstart', handleDragStart);
+  li.addEventListener('dragover', handleDragOver);
+  li.addEventListener('drop', handleDrop);
+  li.addEventListener('dragend', handleDragEnd);
+  
+  return li;
+}
+
+// 更新单个分组项的内容
+function updateGroupItem(li, group) {
+  const content = li.querySelector('.group-content');
+  const count = li.querySelector('.group-count-badge');
+  
+  if (content) {
+    const todos = group.todos || [];
+    content.textContent = getGroupPreviewText(todos);
+  }
+  
+  if (count) {
+    const todos = group.todos || [];
+    const totalCount = todos.length;
+    const completedCount = todos.filter(t => t.completed).length;
+    count.textContent = totalCount > 0 ? `${completedCount}/${totalCount}` : '0';
+  }
+}
+
+// 检查分组是否有变化
+function hasGroupChanged(oldGroup, newGroup) {
+  if (!oldGroup) return true;
+  
+  // 比较待办事项数量
+  const oldTodos = oldGroup.todos || [];
+  const newTodos = newGroup.todos || [];
+  
+  if (oldTodos.length !== newTodos.length) return true;
+  
+  // 比较每个待办事项
+  for (let i = 0; i < newTodos.length; i++) {
+    const oldTodo = oldTodos[i];
+    const newTodo = newTodos[i];
+    
+    if (!oldTodo || 
+        oldTodo.id !== newTodo.id || 
+        oldTodo.text !== newTodo.text || 
+        oldTodo.completed !== newTodo.completed) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+// 增量更新分组列表
+function updateGroups() {
+  // 如果没有分组，显示空状态
+  if (groups.length === 0) {
+    groupList.innerHTML = '';
+    const emptyState = document.createElement('div');
+    emptyState.className = 'empty-state';
+    emptyState.innerHTML = `
+      <div class="empty-state-icon">📁</div>
+      <div class="empty-state-text">暂无分组<br>创建一个分组开始管理待办事项！</div>
+    `;
+    groupList.appendChild(emptyState);
+    previousGroups = [];
+    updateCount();
+    return;
+  }
+  
+  // 移除空状态
+  const emptyState = groupList.querySelector('.empty-state');
+  if (emptyState) {
+    emptyState.remove();
+  }
+  
+  // 获取现有的分组项
+  const existingItems = Array.from(groupList.querySelectorAll('.group-item'));
+  const existingIds = new Set(existingItems.map(item => item.getAttribute('data-group-id')));
+  const newIds = new Set(groups.map(g => g.id));
+  
+  // 创建分组ID到元素的映射
+  const itemMap = new Map();
+  existingItems.forEach(item => {
+    const id = item.getAttribute('data-group-id');
+    itemMap.set(id, item);
+  });
+  
+  // 创建分组ID到数据的映射
+  const oldGroupMap = new Map();
+  previousGroups.forEach(g => oldGroupMap.set(g.id, g));
+  
+  // 处理每个分组
+  groups.forEach((group, index) => {
+    const existingItem = itemMap.get(group.id);
+    const oldGroup = oldGroupMap.get(group.id);
+    
+    if (existingItem) {
+      // 分组已存在，检查是否需要更新
+      if (hasGroupChanged(oldGroup, group)) {
+        updateGroupItem(existingItem, group);
+      }
+      
+      // 确保顺序正确
+      const currentIndex = Array.from(groupList.children).indexOf(existingItem);
+      if (currentIndex !== index) {
+        const nextSibling = groupList.children[index];
+        if (nextSibling) {
+          groupList.insertBefore(existingItem, nextSibling);
+        } else {
+          groupList.appendChild(existingItem);
+        }
+      }
+    } else {
+      // 新分组，创建新元素
+      const newItem = createGroupItem(group);
+      const nextSibling = groupList.children[index];
+      if (nextSibling) {
+        groupList.insertBefore(newItem, nextSibling);
+      } else {
+        groupList.appendChild(newItem);
+      }
+    }
+  });
+  
+  // 移除已删除的分组
+  existingItems.forEach(item => {
+    const id = item.getAttribute('data-group-id');
+    if (!newIds.has(id)) {
+      item.remove();
+    }
+  });
+  
+  // 保存当前状态作为下一次的previousGroups
+  previousGroups = JSON.parse(JSON.stringify(groups));
+  
+  updateCount();
+}
+
+// 渲染分组列表（首次加载时使用）
 function renderGroups() {
   groupList.innerHTML = '';
   
@@ -151,64 +336,13 @@ function renderGroups() {
     groupList.appendChild(emptyState);
   } else {
     groups.forEach(group => {
-      const li = document.createElement('li');
-      li.className = 'todo-item group-item';
-      li.setAttribute('data-group-id', group.id);
-      
-      // 分组图标
-      const icon = document.createElement('span');
-      icon.className = 'group-icon';
-      icon.textContent = '📁';
-      
-      // 分组内容预览
-      const content = document.createElement('div');
-      content.className = 'group-content';
-      const todos = group.todos || [];
-      content.textContent = getGroupPreviewText(todos);
-      
-      // 右侧内容容器
-      const rightContent = document.createElement('div');
-      rightContent.className = 'group-right-content';
-      
-      // 待办数量徽章
-      const count = document.createElement('span');
-      count.className = 'group-count-badge';
-      const totalCount = todos.length;
-      const completedCount = todos.filter(t => t.completed).length;
-      count.textContent = totalCount > 0 ? `${completedCount}/${totalCount}` : '0';
-      
-      // 删除按钮（悬停时显示）
-      const deleteBtn = document.createElement('button');
-      deleteBtn.className = 'delete-btn';
-      deleteBtn.textContent = '×';
-      deleteBtn.title = '删除分组';
-      deleteBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        deleteGroup(group.id);
-      });
-      
-      rightContent.appendChild(count);
-      rightContent.appendChild(deleteBtn);
-      
-      li.appendChild(icon);
-      li.appendChild(content);
-      li.appendChild(rightContent);
-      
-      // 点击打开分组
-      li.addEventListener('click', () => {
-        openGroup(group.id, group.name);
-      });
-      
-      // 拖动排序
-      li.setAttribute('draggable', 'true');
-      li.addEventListener('dragstart', handleDragStart);
-      li.addEventListener('dragover', handleDragOver);
-      li.addEventListener('drop', handleDrop);
-      li.addEventListener('dragend', handleDragEnd);
-      
+      const li = createGroupItem(group);
       groupList.appendChild(li);
     });
   }
+  
+  // 保存当前状态
+  previousGroups = JSON.parse(JSON.stringify(groups));
   
   updateCount();
 }

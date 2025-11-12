@@ -220,7 +220,7 @@ body.group-detail .input-section.visible {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 
 /* 分组详情页面的待办列表间距更紧凑 */
@@ -250,13 +250,14 @@ body.group-detail .todo-list {
 .todo-item {
   display: flex;
   align-items: center;
-  padding: 10px 12px;
+  padding: 8px 12px;
   background: #fffef8;
   border: 1px solid #f0e9d7;
-  border-radius: 3px;
+  border-radius: 6px;
   transition: all 0.15s ease;
   animation: slideIn 0.2s ease;
   cursor: move;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .todo-item[draggable="true"] {
@@ -281,6 +282,8 @@ body.group-detail .todo-list {
 .todo-item:hover {
   background: #ffffff;
   border-color: #e8dcc3;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  transform: translateY(-1px);
 }
 
 /* 分组详情页面的待办项样式 - 与背景一致，更紧凑 */
@@ -289,25 +292,33 @@ body.group-detail .todo-item {
   background: transparent;
   border: none;
   border-radius: 0;
+  box-shadow: none;
 }
 
 body.group-detail .todo-item:hover {
   background: rgba(255, 255, 255, 0.3);
   border: none;
+  transform: none;
+  box-shadow: none;
 }
 
 .todo-item.completed {
-  opacity: 0.5;
+  opacity: 0.6;
   text-decoration: line-through;
+}
+
+.todo-item.completed:hover {
+  opacity: 0.75;
 }
 
 /* 复选框 */
 .todo-checkbox {
   width: 18px;
   height: 18px;
-  margin-right: 10px;
+  margin-right: 12px;
   cursor: pointer;
   accent-color: #a89875;
+  flex-shrink: 0;
 }
 
 /* 待办文本 */
@@ -315,7 +326,7 @@ body.group-detail .todo-item:hover {
   flex: 1;
   font-size: 14px;
   color: #5c4f3a;
-  line-height: 1.5;
+  line-height: 1.6;
   word-break: break-word;
   cursor: text;
   -webkit-user-select: text;
@@ -356,12 +367,12 @@ body.group-detail .todo-item:hover {
 
 /* 删除按钮 */
 .delete-btn {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border: none;
   background: transparent;
   color: #d4a574;
-  border-radius: 3px;
+  border-radius: 4px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -369,6 +380,7 @@ body.group-detail .todo-item:hover {
   opacity: 0;
   transition: all 0.15s ease;
   font-size: 18px;
+  flex-shrink: 0;
 }
 
 .todo-item:hover .delete-btn {
@@ -473,7 +485,7 @@ body.group-detail .footer.visible {
 
 /* 分组列表 */
 .group-list {
-  gap: 8px;
+  gap: 6px;
 }
 
 /* 新建分组区域 */
@@ -513,9 +525,9 @@ body.group-detail .footer.visible {
 /* 分组项 */
 .group-item {
   cursor: pointer;
-  padding: 12px;
+  padding: 10px 12px;
   transition: all 0.15s ease;
-  min-height: 60px;
+  min-height: 50px;
   display: flex;
   align-items: flex-start;
 }
@@ -531,17 +543,17 @@ body.group-detail .footer.visible {
 .group-item:hover {
   background: #ffffff;
   border-color: #e8dcc3;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  transform: translateY(-1px);
 }
 
 .group-item:active {
   transform: scale(0.98);
 }
 
-/* 分组图标 */
+/* 分组图标 - 已移除 */
 .group-icon {
-  font-size: 20px;
-  margin-right: 10px;
-  flex-shrink: 0;
+  display: none;
 }
 
 /* 分组内容预览 */
@@ -550,7 +562,7 @@ body.group-detail .footer.visible {
   font-size: 13px;
   font-weight: 400;
   color: #5c4f3a;
-  line-height: 1.5;
+  line-height: 1.6;
   word-break: break-word;
   white-space: pre-line;
   display: -webkit-box;
@@ -558,29 +570,28 @@ body.group-detail .footer.visible {
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-height: calc(1.5em * 5);
+  max-height: calc(1.6em * 5);
 }
 
 /* 右侧内容 */
 .group-right-content {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
+  align-items: center;
+  gap: 10px;
   margin-left: auto;
   flex-shrink: 0;
-  padding-top: 2px;
 }
 
 /* 分组计数徽章 */
 .group-count-badge {
   background: #f5f0e1;
   color: #7d6c4d;
-  padding: 3px 8px;
-  border-radius: 10px;
+  padding: 4px 10px;
+  border-radius: 12px;
   border: 1px solid #e8dcc3;
   font-size: 11px;
-  font-weight: 400;
-  min-width: 35px;
+  font-weight: 500;
+  min-width: 40px;
   text-align: center;
   white-space: nowrap;
 }
