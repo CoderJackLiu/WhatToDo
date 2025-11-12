@@ -13,6 +13,11 @@ body {
   user-select: none;
 }
 
+/* 分组详情页面样式 */
+body.group-detail {
+  background-color: #fefaed;
+}
+
 /* 自定义标题栏 */
 .titlebar {
   display: flex;
@@ -43,6 +48,7 @@ body.group-detail .titlebar {
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.2s ease, visibility 0.2s ease;
+  /* 主题颜色将通过JavaScript动态设置 */
 }
 
 body.group-detail .titlebar.visible {
@@ -97,6 +103,11 @@ body.group-detail .titlebar.visible {
   background: rgba(125, 108, 77, 0.1);
 }
 
+/* 分组详情页面的标题栏按钮hover效果使用主题颜色 */
+body.group-detail .titlebar-button:hover {
+  background: var(--theme-hover-bg, rgba(0, 0, 0, 0.08));
+}
+
 .titlebar-button.close:hover {
   background: rgba(231, 76, 60, 0.15);
   color: #e74c3c;
@@ -128,6 +139,15 @@ body.group-detail .titlebar.visible {
   background: rgba(125, 108, 77, 0.2);
 }
 
+/* 菜单按钮 */
+.titlebar-button.menu {
+  position: relative;
+}
+
+.titlebar-button.menu:hover {
+  background: rgba(125, 108, 77, 0.1);
+}
+
 /* 主容器 */
 .container {
   display: flex;
@@ -141,6 +161,7 @@ body.group-detail .titlebar.visible {
 body.group-detail .container {
   height: 100vh;
   padding: 50px 15px 5px 15px;
+  background-color: #fefaed;
 }
 
 /* 输入区域 */
@@ -180,10 +201,12 @@ body.group-detail .input-section.visible {
   color: #b5a88f;
 }
 
+
 .todo-input:focus {
   border-color: #d4c7a8;
   background-color: #ffffff;
 }
+
 
 .add-btn {
   width: 36px;
@@ -198,6 +221,7 @@ body.group-detail .input-section.visible {
   justify-content: center;
   transition: all 0.15s ease;
 }
+
 
 .add-btn:hover {
   background: #f5f0e1;
@@ -225,7 +249,7 @@ body.group-detail .input-section.visible {
 
 /* 分组详情页面的待办列表间距更紧凑 */
 body.group-detail .todo-list {
-  gap: 4px;
+  gap: 2px;
 }
 
 /* 滚动条样式 */
@@ -288,7 +312,7 @@ body.group-detail .todo-list {
 
 /* 分组详情页面的待办项样式 - 与背景一致，更紧凑 */
 body.group-detail .todo-item {
-  padding: 6px 12px;
+  padding: 4px 8px;
   background: transparent;
   border: none;
   border-radius: 0;
@@ -296,7 +320,7 @@ body.group-detail .todo-item {
 }
 
 body.group-detail .todo-item:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.4);
   border: none;
   transform: none;
   box-shadow: none;
@@ -321,6 +345,13 @@ body.group-detail .todo-item:hover {
   flex-shrink: 0;
 }
 
+/* 分组详情页面的复选框更小 */
+body.group-detail .todo-checkbox {
+  width: 16px;
+  height: 16px;
+  margin-right: 10px;
+}
+
 /* 待办文本 */
 .todo-text {
   flex: 1;
@@ -337,6 +368,12 @@ body.group-detail .todo-item:hover {
   border-radius: 3px;
 }
 
+/* 分组详情页面的文本样式 */
+body.group-detail .todo-text {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .todo-text:hover {
   background-color: rgba(125, 108, 77, 0.08);
 }
@@ -344,6 +381,10 @@ body.group-detail .todo-item:hover {
 .todo-item.completed .todo-text {
   text-decoration: line-through;
   color: #b5a88f;
+}
+
+body.group-detail .todo-item.completed .todo-text {
+  color: var(--theme-text-light, #b5a88f);
 }
 
 /* 编辑输入框 */
@@ -421,6 +462,7 @@ body.group-detail .footer.visible {
   font-weight: 400;
 }
 
+
 .clear-btn {
   padding: 6px 12px;
   font-size: 12px;
@@ -432,6 +474,7 @@ body.group-detail .footer.visible {
   transition: all 0.15s ease;
   font-weight: 400;
 }
+
 
 .clear-btn:hover {
   background: #f5f0e1;
@@ -530,6 +573,8 @@ body.group-detail .footer.visible {
   min-height: 50px;
   display: flex;
   align-items: flex-start;
+  border-top: 2px solid #e8dcc3; /* 很矮的边框，显示分组主题颜色 */
+  border-radius: 0;
 }
 
 .group-item[draggable="true"] {
@@ -623,5 +668,82 @@ body.group-detail .footer.visible {
     padding: 3px 8px;
     min-width: 35px;
   }
+}
+
+/* ========================================
+   主题菜单样式
+   ======================================== */
+
+.theme-menu {
+  position: fixed;
+  top: 40px;
+  right: 12px;
+  background: #ffffff;
+  border: 1px solid #e8dcc3;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 2000;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.2s ease;
+  min-width: 200px;
+  padding: 8px;
+}
+
+.theme-menu.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.theme-menu-header {
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #5c4f3a;
+  border-bottom: 1px solid #e8dcc3;
+  margin-bottom: 8px;
+}
+
+.theme-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.theme-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 2px solid transparent;
+}
+
+.theme-option:hover {
+  background: #f5f0e1;
+}
+
+.theme-option.active {
+  border-color: #a89875;
+  background: #f5f0e1;
+}
+
+.theme-preview {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  border: 1px solid #e8dcc3;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.theme-name {
+  font-size: 11px;
+  color: #5c4f3a;
+  font-weight: 400;
 }
 

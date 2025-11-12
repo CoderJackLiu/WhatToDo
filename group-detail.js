@@ -7,6 +7,8 @@ const clearCompletedBtn = document.getElementById('clear-completed');
 const pinBtn = document.getElementById('pin-btn');
 const minimizeBtn = document.getElementById('minimize-btn');
 const closeBtn = document.getElementById('close-btn');
+const menuBtn = document.getElementById('menu-btn');
+const themeMenu = document.getElementById('theme-menu');
 const windowTitle = document.getElementById('window-title');
 const titlebar = document.querySelector('.titlebar');
 const titlebarTrigger = document.querySelector('.titlebar-trigger');
@@ -19,6 +21,7 @@ let currentGroupName = '';
 let groups = [];
 let todos = [];
 let isAlwaysOnTop = false;
+let currentTheme = 'default';
 
 // 初始化应用
 async function init() {
@@ -43,6 +46,10 @@ async function loadGroupData() {
     const group = groups.find(g => g.id === currentGroupId);
     if (group) {
       todos = group.todos || [];
+      // 加载并应用分组的主题
+      const groupTheme = group.theme || 'default';
+      currentTheme = groupTheme;
+      applyTheme(groupTheme);
       renderTodos();
     }
   } catch (error) {
@@ -57,6 +64,7 @@ async function saveGroupData() {
     const group = groups.find(g => g.id === currentGroupId);
     if (group) {
       group.todos = todos;
+      group.theme = currentTheme; // 保存主题到分组
       group.updatedAt = Date.now();
       await window.electronAPI.saveGroups({ groups });
       // 通知主窗口刷新
@@ -79,6 +87,29 @@ function bindEvents() {
   
   // 清除已完成
   clearCompletedBtn.addEventListener('click', clearCompleted);
+  
+  // 菜单按钮
+  menuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleThemeMenu();
+  });
+  
+  // 主题选择
+  const themeOptions = themeMenu.querySelectorAll('.theme-option');
+  themeOptions.forEach(option => {
+    option.addEventListener('click', () => {
+      const theme = option.getAttribute('data-theme');
+      selectTheme(theme);
+      hideThemeMenu();
+    });
+  });
+  
+  // 点击外部关闭菜单
+  document.addEventListener('click', (e) => {
+    if (!themeMenu.contains(e.target) && !menuBtn.contains(e.target)) {
+      hideThemeMenu();
+    }
+  });
   
   // 窗口控制
   pinBtn.addEventListener('click', () => {
@@ -419,6 +450,127 @@ function updateCount() {
   const hasCompleted = todos.some(t => t.completed);
   clearCompletedBtn.style.opacity = hasCompleted ? '1' : '0.3';
   clearCompletedBtn.style.cursor = hasCompleted ? 'pointer' : 'default';
+}
+
+// 颜色主题配置 - 只用于标题栏
+const themes = {
+  default: {
+    bg: '#fef7dc',
+    border: '#e8dcc3',
+    text: '#7d6c4d'
+  },
+  blue: {
+    bg: '#d4e8f0',
+    border: '#b8d4e0',
+    text: '#4a6b7a'
+  },
+  green: {
+    bg: '#d4ead6',
+    border: '#b8d4ba',
+    text: '#4a6b4c'
+  },
+  purple: {
+    bg: '#e6d4ed',
+    border: '#d4b8d4',
+    text: '#6b4a6b'
+  },
+  gray: {
+    bg: '#e8e8e8',
+    border: '#d0d0d0',
+    text: '#5a5a5a'
+  },
+  pink: {
+    bg: '#f5d4e3',
+    border: '#e8b8d0',
+    text: '#7a4a5a'
+  }
+};
+
+// 应用主题 - 只改变标题栏颜色
+function applyTheme(theme) {
+  if (!themes[theme]) {
+    theme = 'default';
+  }
+  
+  const themeColors = themes[theme];
+  const titlebar = document.querySelector('.titlebar');
+  
+  if (titlebar) {
+    // 只改变标题栏的背景、边框和文字颜色
+    titlebar.style.backgroundColor = themeColors.bg;
+    titlebar.style.borderBottomColor = themeColors.border;
+    titlebar.style.color = themeColors.text;
+    
+    // 更新标题栏内的文字和按钮颜色
+    const titlebarTitle = titlebar.querySelector('.titlebar-title');
+    const titlebarButtons = titlebar.querySelectorAll('.titlebar-button');
+    
+    if (titlebarTitle) {
+      titlebarTitle.style.color = themeColors.text;
+    }
+    
+    titlebarButtons.forEach(btn => {
+      btn.style.color = themeColors.text;
+    });
+    
+    // 为标题栏添加CSS变量，用于hover效果
+    // 将十六进制颜色转换为rgba格式用于hover背景
+    const hexToRgb = (hex) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      } : null;
+    };
+    
+    const rgb = hexToRgb(themeColors.text);
+    if (rgb) {
+      titlebar.style.setProperty('--theme-hover-bg', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)`);
+    } else {
+      // 如果转换失败，使用通用半透明背景
+      titlebar.style.setProperty('--theme-hover-bg', 'rgba(0, 0, 0, 0.08)');
+    }
+  }
+  
+  // 更新选中状态
+  const themeOptions = themeMenu.querySelectorAll('.theme-option');
+  themeOptions.forEach(option => {
+    if (option.getAttribute('data-theme') === theme) {
+      option.classList.add('active');
+    } else {
+      option.classList.remove('active');
+    }
+  });
+}
+
+// 选择主题
+function selectTheme(theme) {
+  if (!themes[theme]) return;
+  
+  currentTheme = theme;
+  applyTheme(theme);
+  // 保存到分组数据
+  saveGroupData();
+}
+
+// 切换主题菜单显示
+function toggleThemeMenu() {
+  if (themeMenu.classList.contains('visible')) {
+    hideThemeMenu();
+  } else {
+    showThemeMenu();
+  }
+}
+
+// 显示主题菜单
+function showThemeMenu() {
+  themeMenu.classList.add('visible');
+}
+
+// 隐藏主题菜单
+function hideThemeMenu() {
+  themeMenu.classList.remove('visible');
 }
 
 // 启动应用

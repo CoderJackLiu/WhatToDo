@@ -138,11 +138,26 @@ function getGroupPreviewText(todos) {
   return previewText;
 }
 
+// 主题颜色映射（用于主界面显示）
+const themeColors = {
+  default: { border: '#e8dcc3' },
+  blue: { border: '#b8d4e0' },
+  green: { border: '#b8d4ba' },
+  purple: { border: '#d4b8d4' },
+  gray: { border: '#d0d0d0' },
+  pink: { border: '#e8b8d0' }
+};
+
 // 创建单个分组项
 function createGroupItem(group) {
   const li = document.createElement('li');
   li.className = 'todo-item group-item';
   li.setAttribute('data-group-id', group.id);
+  
+  // 应用分组的主题颜色边框
+  const theme = group.theme || 'default';
+  const themeColor = themeColors[theme] || themeColors.default;
+  li.style.borderTopColor = themeColor.border;
   
   // 分组内容预览
   const content = document.createElement('div');
@@ -208,11 +223,21 @@ function updateGroupItem(li, group) {
     const completedCount = todos.filter(t => t.completed).length;
     count.textContent = totalCount > 0 ? `${completedCount}/${totalCount}` : '0';
   }
+  
+  // 更新主题颜色边框
+  const theme = group.theme || 'default';
+  const themeColor = themeColors[theme] || themeColors.default;
+  li.style.borderTopColor = themeColor.border;
 }
 
 // 检查分组是否有变化
 function hasGroupChanged(oldGroup, newGroup) {
   if (!oldGroup) return true;
+  
+  // 检查主题是否变化
+  if ((oldGroup.theme || 'default') !== (newGroup.theme || 'default')) {
+    return true;
+  }
   
   // 比较待办事项数量
   const oldTodos = oldGroup.todos || [];
