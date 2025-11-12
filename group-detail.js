@@ -569,28 +569,35 @@ function applyTheme(theme) {
   
   if (titlebar) {
     // 根据暗色/亮色模式调整标题栏颜色
-    let bgColor, borderColor, textColor;
+    let bgColor, borderColor, textColor, topBorderColor;
     
     if (isDarkMode) {
-      // 暗色模式下，标题栏使用深色背景，但边框和文字可以保持主题色调
-      bgColor = '#2d2d2d'; // 固定使用深色背景
-      borderColor = adjustColorForDarkMode(themeColors.border); // 边框保持主题色调但变深
+      // 暗色模式下，标题栏背景使用主题颜色的深色版本，保留更多原始颜色
+      bgColor = adjustColorForDarkMode(themeColors.bg, 0.65); // 使用65%亮度的主题背景色，保留更多原始色调
+      // 边框使用更明显的主题颜色（90%亮度），让主题风格更突出
+      borderColor = adjustColorForDarkMode(themeColors.border, 0.9);
+      // 顶部边框使用更亮的主题颜色作为强调（几乎保持原始颜色）
+      topBorderColor = adjustColorForDarkMode(themeColors.border, 0.95);
       textColor = '#e0e0e0'; // 文字使用浅色，确保可读性
     } else {
       bgColor = themeColors.bg;
       borderColor = themeColors.border;
+      topBorderColor = themeColors.border;
       textColor = themeColors.text;
     }
     
     // 只改变标题栏的背景、边框和文字颜色
     if (isDarkMode) {
-      // 暗色模式下，使用深色背景，边框可以显示主题色调
+      // 暗色模式下，使用主题颜色的深色版本作为背景
       titlebar.style.setProperty('background-color', bgColor, 'important');
       titlebar.style.setProperty('border-bottom-color', borderColor, 'important');
+      // 添加顶部边框来显示主题颜色
+      titlebar.style.setProperty('border-top', `2px solid ${topBorderColor}`, 'important');
       titlebar.style.setProperty('color', textColor, 'important');
     } else {
       titlebar.style.backgroundColor = bgColor;
       titlebar.style.borderBottomColor = borderColor;
+      titlebar.style.borderTop = 'none';
       titlebar.style.color = textColor;
     }
     
@@ -645,8 +652,8 @@ function applyTheme(theme) {
   });
 }
 
-// 为暗色模式调整颜色（使颜色更深但保持色调）
-function adjustColorForDarkMode(hex) {
+// 为暗色模式调整颜色（保留更多原始主题颜色）
+function adjustColorForDarkMode(hex, brightness = 0.6) {
   const hexToRgb = (hex) => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result ? {
@@ -663,11 +670,49 @@ function adjustColorForDarkMode(hex) {
   const rgb = hexToRgb(hex);
   if (!rgb) return hex;
   
-  // 降低亮度但保持色调
-  const factor = 0.4; // 降低到40%亮度
-  const newR = Math.max(0, Math.min(255, Math.floor(rgb.r * factor)));
-  const newG = Math.max(0, Math.min(255, Math.floor(rgb.g * factor)));
-  const newB = Math.max(0, Math.min(255, Math.floor(rgb.b * factor)));
+  // 使用更直接的方法：按比例降低亮度，保持颜色比例和饱和度
+  // 计算当前颜色的最大分量（用于保持颜色比例）
+  const maxComponent = Math.max(rgb.r, rgb.g, rgb.b);
+  
+  // 如果颜色已经很暗，直接返回（避免过度变暗）
+  if (maxComponent < 60) {
+    return hex;
+  }
+  
+  // 计算目标最大分量（保持颜色比例）
+  // 对于高亮度值，使用更高的保留比例
+  let targetMax;
+  if (maxComponent > 200) {
+    // 非常亮的颜色，保留更多
+    targetMax = Math.max(80, Math.floor(maxComponent * brightness * 1.1));
+  } else {
+    targetMax = Math.max(60, Math.floor(maxComponent * brightness));
+  }
+  
+  // 按比例缩放所有颜色分量，保持原始颜色比例
+  let newR, newG, newB;
+  if (maxComponent > 0) {
+    const scale = targetMax / maxComponent;
+    // 确保最小值不会太低，保留更多颜色特征
+    const minValue = brightness > 0.8 ? 60 : 50;
+    newR = Math.max(minValue, Math.min(255, Math.floor(rgb.r * scale)));
+    newG = Math.max(minValue, Math.min(255, Math.floor(rgb.g * scale)));
+    newB = Math.max(minValue, Math.min(255, Math.floor(rgb.b * scale)));
+  } else {
+    newR = rgb.r;
+    newG = rgb.g;
+    newB = rgb.b;
+  }
+  
+  // 确保颜色不会太暗（最低亮度保证，根据brightness参数调整）
+  const minBrightness = brightness > 0.8 ? 70 : (brightness > 0.6 ? 60 : 50);
+  const currentBrightness = (newR + newG + newB) / 3;
+  if (currentBrightness < minBrightness) {
+    const adjustFactor = minBrightness / currentBrightness;
+    newR = Math.min(255, Math.floor(newR * adjustFactor));
+    newG = Math.min(255, Math.floor(newG * adjustFactor));
+    newB = Math.min(255, Math.floor(newB * adjustFactor));
+  }
   
   return rgbToHex(newR, newG, newB);
 }

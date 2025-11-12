@@ -78,23 +78,24 @@ body.group-detail .titlebar {
   z-index: 1000;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.2s ease, visibility 0.2s ease, background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  transition: opacity 0.2s ease, visibility 0.2s ease, background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, border-top 0.3s ease;
   /* 主题颜色将通过JavaScript动态设置 */
 }
 
 /* 暗色模式下分组详情窗口的标题栏默认颜色 */
+/* 注意：实际的主题颜色会通过JavaScript动态设置，这里的样式作为后备 */
 body.dark-theme.group-detail .titlebar {
-  background: #2d2d2d !important;
-  color: #e0e0e0 !important;
-  border-bottom-color: #404040 !important;
+  background: #2d2d2d;
+  color: #e0e0e0;
+  border-bottom-color: #404040;
 }
 
 body.dark-theme.group-detail .titlebar-title {
-  color: #e0e0e0 !important;
+  color: #e0e0e0;
 }
 
 body.dark-theme.group-detail .titlebar-button {
-  color: #e0e0e0 !important;
+  color: #e0e0e0;
 }
 
 body.group-detail .titlebar.visible {
