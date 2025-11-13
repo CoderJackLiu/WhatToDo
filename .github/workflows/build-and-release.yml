@@ -264,28 +264,47 @@ jobs:
               });
               
               // 构建 Release Notes
-              let notes = `## TodoList ${tagVersion}\n\n`;
+              // 使用数组构建，确保换行符正确
+              const notesLines = [`## TodoList ${tagVersion}`, ''];
               
               if (commits.length === 0) {
-                notes += `### 变更\n- 初始版本发布\n\n`;
+                notesLines.push('### 变更', '- 初始版本发布', '');
               } else {
                 if (features.length > 0) {
-                  notes += `### ✨ 新功能\n\n${features.join('\n\n')}\n\n`;
+                  notesLines.push('### ✨ 新功能', '');
+                  features.forEach(item => {
+                    notesLines.push(item, '');
+                  });
                 }
                 if (fixes.length > 0) {
-                  notes += `### 🐛 修复\n\n${fixes.join('\n\n')}\n\n`;
+                  notesLines.push('### 🐛 修复', '');
+                  fixes.forEach(item => {
+                    notesLines.push(item, '');
+                  });
                 }
                 if (refactor.length > 0) {
-                  notes += `### ♻️ 重构\n\n${refactor.join('\n\n')}\n\n`;
+                  notesLines.push('### ♻️ 重构', '');
+                  refactor.forEach(item => {
+                    notesLines.push(item, '');
+                  });
                 }
                 if (docs.length > 0) {
-                  notes += `### 📝 文档\n\n${docs.join('\n\n')}\n\n`;
+                  notesLines.push('### 📝 文档', '');
+                  docs.forEach(item => {
+                    notesLines.push(item, '');
+                  });
                 }
                 if (chore.length > 0) {
-                  notes += `### 🔧 构建/工具\n\n${chore.join('\n\n')}\n\n`;
+                  notesLines.push('### 🔧 构建/工具', '');
+                  chore.forEach(item => {
+                    notesLines.push(item, '');
+                  });
                 }
                 if (others.length > 0) {
-                  notes += `### 📦 其他变更\n\n${others.join('\n\n')}\n\n`;
+                  notesLines.push('### 📦 其他变更', '');
+                  others.forEach(item => {
+                    notesLines.push(item, '');
+                  });
                 }
               }
               
@@ -294,9 +313,10 @@ jobs:
                 const compareUrl = previousTag 
                   ? `https://github.com/${context.repo.owner}/${context.repo.repo}/compare/${previousTag}...${tagName}`
                   : `https://github.com/${context.repo.owner}/${context.repo.repo}/commits/${tagName}`;
-                notes += `---\n\n**统计**: 共 ${commits.length} 个提交\n\n查看 [完整变更日志](${compareUrl})`;
+                notesLines.push('---', '', `**统计**: 共 ${commits.length} 个提交`, '', `查看 [完整变更日志](${compareUrl})`);
               }
               
+              const notes = notesLines.join('\n');
               core.setOutput('result', notes);
               return notes;
             } catch (error) {
