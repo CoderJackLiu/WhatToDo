@@ -270,22 +270,22 @@ jobs:
                 notes += `### 变更\n- 初始版本发布\n\n`;
               } else {
                 if (features.length > 0) {
-                  notes += `### ✨ 新功能\n${features.join('\n')}\n\n`;
+                  notes += `### ✨ 新功能\n\n${features.join('\n\n')}\n\n`;
                 }
                 if (fixes.length > 0) {
-                  notes += `### 🐛 修复\n${fixes.join('\n')}\n\n`;
+                  notes += `### 🐛 修复\n\n${fixes.join('\n\n')}\n\n`;
                 }
                 if (refactor.length > 0) {
-                  notes += `### ♻️ 重构\n${refactor.join('\n')}\n\n`;
+                  notes += `### ♻️ 重构\n\n${refactor.join('\n\n')}\n\n`;
                 }
                 if (docs.length > 0) {
-                  notes += `### 📝 文档\n${docs.join('\n')}\n\n`;
+                  notes += `### 📝 文档\n\n${docs.join('\n\n')}\n\n`;
                 }
                 if (chore.length > 0) {
-                  notes += `### 🔧 构建/工具\n${chore.join('\n')}\n\n`;
+                  notes += `### 🔧 构建/工具\n\n${chore.join('\n\n')}\n\n`;
                 }
                 if (others.length > 0) {
-                  notes += `### 📦 其他变更\n${others.join('\n')}\n\n`;
+                  notes += `### 📦 其他变更\n\n${others.join('\n\n')}\n\n`;
                 }
               }
               
