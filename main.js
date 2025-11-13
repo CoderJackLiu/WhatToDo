@@ -80,7 +80,7 @@ function createGroupWindow(groupId, groupName) {
     transparent: false,
     resizable: true,
     backgroundColor: '#f5f5f5',
-    title: groupName,
+    title: 'TodoList', // 使用固定标题，不再显示分组名称
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -91,9 +91,9 @@ function createGroupWindow(groupId, groupName) {
 
   groupWindow.loadFile('group-detail.html');
 
-  // 窗口加载完成后发送分组信息
+  // 窗口加载完成后发送分组信息（保留groupName字段，但不显示）
   groupWindow.webContents.on('did-finish-load', () => {
-    groupWindow.webContents.send('group-info', { groupId, groupName });
+    groupWindow.webContents.send('group-info', { groupId, groupName: groupName || '' });
   });
 
   // 监听窗口焦点变化

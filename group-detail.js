@@ -34,8 +34,8 @@ async function init() {
   // 接收分组信息
   window.electronAPI.onGroupInfo((data) => {
     currentGroupId = data.groupId;
-    currentGroupName = data.groupName;
-    windowTitle.textContent = `${currentGroupName}`;
+    currentGroupName = data.groupName; // 保留数据，但不显示
+    windowTitle.textContent = 'TodoList'; // 使用固定标题
     loadGroupData();
     // 确保显示标题栏和底部
     showTitlebarAndFooter();

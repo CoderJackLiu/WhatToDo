@@ -142,10 +142,8 @@ function deleteGroup(id) {
 
 // 打开分组
 function openGroup(id, name) {
-  // 如果没有名称，使用默认名称
-  const group = groups.find(g => g.id === id);
-  const displayName = group && group.name ? group.name : '未命名分组';
-  window.electronAPI.openGroup(id, displayName);
+  // 不再显示分组名称，但保留数据结构中的name字段
+  window.electronAPI.openGroup(id, '');
 }
 
 
@@ -233,7 +231,7 @@ function createGroupItem(group) {
   
   // 点击打开分组
   li.addEventListener('click', () => {
-    openGroup(group.id, group.name);
+    openGroup(group.id, '');
   });
   
   // 拖动排序
