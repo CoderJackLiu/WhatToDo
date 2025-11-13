@@ -72,8 +72,8 @@ jobs:
           
           # 准备发布到 GitHub Packages
           $repoParts = "${{ github.repository }}".Split('/')
-          $owner = $repoParts[0]
-          $repo = $repoParts[1]
+          $owner = $repoParts[0].ToLower()  # GitHub Packages 要求包名全小写
+          $repo = $repoParts[1].ToLower()   # GitHub Packages 要求包名全小写
           $packageDir = "pkg-temp"
           
           # 创建临时包目录
@@ -96,7 +96,7 @@ jobs:
           
           $pkgJson | Out-File -FilePath "$packageDir/package.json" -Encoding utf8
           
-          # 配置 npm registry 和认证
+          # 配置 npm registry 和认证（scope 也需要小写）
           $npmrcContent = "@$owner`:registry=https://npm.pkg.github.com`n//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}"
           $npmrcContent | Out-File -FilePath "$packageDir/.npmrc" -Encoding utf8
           
