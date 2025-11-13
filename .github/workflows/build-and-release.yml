@@ -206,30 +206,106 @@ jobs:
           script: |
             const tagName = '${{ github.ref_name }}';
             const previousTag = '${{ steps.previous-tag.outputs.previous_tag }}';
+            const tagVersion = tagName.replace(/^v/, '');
             
             try {
-              // 使用 GitHub API 自动生成 Release Notes
-              const params = {
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                tag_name: tagName,
-              };
-              
-              // 如果有上一个 tag，则指定 previous_tag_name
+              // 获取提交记录
+              let commits = [];
               if (previousTag && previousTag.trim() !== '') {
-                params.previous_tag_name = previousTag;
+                // 获取两个 tag 之间的提交
+                const { data: compare } = await github.rest.repos.compareCommits({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  base: previousTag,
+                  head: tagName,
+                });
+                commits = compare.commits || [];
+              } else {
+                // 如果没有上一个 tag，获取最近的提交（最多100条）
+                const { data: commitList } = await github.rest.repos.listCommits({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  sha: tagName,
+                  per_page: 100,
+                });
+                commits = commitList || [];
               }
               
-              const { data: releaseNotes } = await github.rest.repos.generateReleaseNotes(params);
+              // 分类提交
+              const features = [];
+              const fixes = [];
+              const docs = [];
+              const refactor = [];
+              const chore = [];
+              const others = [];
               
-              // 返回生成的 Release Notes
-              core.setOutput('result', releaseNotes.body);
-              return releaseNotes.body;
+              commits.forEach(commit => {
+                const message = commit.commit.message.split('\n')[0]; // 只取第一行
+                const author = commit.commit.author.name;
+                const sha = commit.sha.substring(0, 7);
+                const url = commit.html_url;
+                
+                const item = `- ${message} ([${sha}](${url})) - ${author}`;
+                
+                const lowerMessage = message.toLowerCase();
+                if (lowerMessage.startsWith('feat') || lowerMessage.startsWith('feature') || lowerMessage.includes('新功能') || lowerMessage.includes('添加')) {
+                  features.push(item);
+                } else if (lowerMessage.startsWith('fix') || lowerMessage.startsWith('bugfix') || lowerMessage.includes('修复')) {
+                  fixes.push(item);
+                } else if (lowerMessage.startsWith('docs') || lowerMessage.includes('文档')) {
+                  docs.push(item);
+                } else if (lowerMessage.startsWith('refactor') || lowerMessage.includes('重构')) {
+                  refactor.push(item);
+                } else if (lowerMessage.startsWith('chore') || lowerMessage.startsWith('ci') || lowerMessage.includes('构建')) {
+                  chore.push(item);
+                } else {
+                  others.push(item);
+                }
+              });
+              
+              // 构建 Release Notes
+              let notes = `## TodoList ${tagVersion}\n\n`;
+              
+              if (commits.length === 0) {
+                notes += `### 变更\n- 初始版本发布\n\n`;
+              } else {
+                if (features.length > 0) {
+                  notes += `### ✨ 新功能\n${features.join('\n')}\n\n`;
+                }
+                if (fixes.length > 0) {
+                  notes += `### 🐛 修复\n${fixes.join('\n')}\n\n`;
+                }
+                if (refactor.length > 0) {
+                  notes += `### ♻️ 重构\n${refactor.join('\n')}\n\n`;
+                }
+                if (docs.length > 0) {
+                  notes += `### 📝 文档\n${docs.join('\n')}\n\n`;
+                }
+                if (chore.length > 0) {
+                  notes += `### 🔧 构建/工具\n${chore.join('\n')}\n\n`;
+                }
+                if (others.length > 0) {
+                  notes += `### 📦 其他变更\n${others.join('\n')}\n\n`;
+                }
+              }
+              
+              // 添加统计信息
+              if (commits.length > 0) {
+                const compareUrl = previousTag 
+                  ? `https://github.com/${context.repo.owner}/${context.repo.repo}/compare/${previousTag}...${tagName}`
+                  : `https://github.com/${context.repo.owner}/${context.repo.repo}/commits/${tagName}`;
+                notes += `---\n\n**统计**: 共 ${commits.length} 个提交\n\n查看 [完整变更日志](${compareUrl})`;
+              }
+              
+              core.setOutput('result', notes);
+              return notes;
             } catch (error) {
               // 如果生成失败，返回默认内容
               console.error('生成 Release Notes 失败:', error);
-              const tagVersion = tagName.replace(/^v/, '');
-              const fallbackNotes = `## TodoList ${tagVersion}\n\n### 变更\n- 查看 [提交历史](https://github.com/${context.repo.owner}/${context.repo.repo}/compare/${previousTag || 'HEAD'}...${tagName})`;
+              const compareUrl = previousTag 
+                ? `https://github.com/${context.repo.owner}/${context.repo.repo}/compare/${previousTag}...${tagName}`
+                : `https://github.com/${context.repo.owner}/${context.repo.repo}/commits/${tagName}`;
+              const fallbackNotes = `## TodoList ${tagVersion}\n\n### 变更\n- 查看 [提交历史](${compareUrl})`;
               core.setOutput('result', fallbackNotes);
               return fallbackNotes;
             }
