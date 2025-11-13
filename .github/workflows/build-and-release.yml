@@ -1,7 +1,7 @@
-name: 构建和发布
+name: Build and Release
 
 on:
-  # 所有分支的 push 事件和 Tag 推送事件
+  # Push events on all branches and tag push events
   push:
     branches:
       - '**'
@@ -17,10 +17,10 @@ jobs:
     runs-on: windows-latest
     
     steps:
-      - name: 检出代码
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 设置 Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -28,22 +28,22 @@ jobs:
           registry-url: 'https://npm.pkg.github.com'
           scope: '@${{ github.repository_owner }}'
 
-      - name: 安装依赖
+      - name: Install dependencies
         run: npm ci
 
-      - name: 构建应用
+      - name: Build application
         run: npm run build -- --publish never
         env:
           ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
 
-      - name: 提取版本号
+      - name: Extract version
         id: version
         run: |
           $version = (Get-Content package.json | ConvertFrom-Json).version
           echo "version=$version" >> $env:GITHUB_OUTPUT
-          echo "版本号: $version"
+          echo "Version: $version"
 
-      - name: 查找构建产物
+      - name: Find build artifacts
         id: find-artifact
         run: |
           $exeFile = Get-ChildItem -Path dist -Filter *.exe -Recurse | Select-Object -First 1
@@ -52,13 +52,13 @@ jobs:
             $filePath = $exeFile.FullName
             echo "file_name=$fileName" >> $env:GITHUB_OUTPUT
             echo "file_path=$filePath" >> $env:GITHUB_OUTPUT
-            echo "找到构建产物: $fileName"
+            echo "Found build artifact: $fileName"
           } else {
-            echo "错误: 未找到 exe 文件"
+            echo "Error: exe file not found"
             exit 1
           }
 
-      - name: 上传到 GitHub Packages
+      - name: Upload to GitHub Packages
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -66,35 +66,35 @@ jobs:
           $packageName = "todolist-${{ steps.version.outputs.version }}-${{ github.sha }}.exe"
           $packagePath = "${{ steps.find-artifact.outputs.file_path }}"
           
-          # 重命名文件
+          # Rename file
           $newPath = Join-Path (Split-Path $packagePath) $packageName
           Copy-Item $packagePath $newPath -Force
           
-          # 准备发布到 GitHub Packages
+          # Prepare for publishing to GitHub Packages
           $repoParts = "${{ github.repository }}".Split('/')
-          $owner = $repoParts[0].ToLower()  # GitHub Packages 要求包名全小写
-          $repo = $repoParts[1].ToLower()   # GitHub Packages 要求包名全小写
+          $owner = $repoParts[0].ToLower()  # GitHub Packages requires lowercase package names
+          $repo = $repoParts[1].ToLower()   # GitHub Packages requires lowercase package names
           $version = "${{ steps.version.outputs.version }}"
           
-          # 包名包含版本号，实现按版本号分组
+          # Package name includes version number for grouping by version
           $packageNameWithVersion = "$repo-$version"
           $packageDir = "pkg-temp"
           
-          # 创建临时包目录
+          # Create temporary package directory
           New-Item -ItemType Directory -Path $packageDir -Force | Out-Null
           
-          # 复制 exe 文件到包目录
+          # Copy exe file to package directory
           Copy-Item $newPath "$packageDir/$packageName"
           
-          # 创建 package.json 用于发布
-          # 包名格式：@owner/repo-1.0.0
-          # 版本号：使用 commit SHA 的前8位
+          # Create package.json for publishing
+          # Package name format: @owner/repo-1.0.0
+          # Version: use first 8 characters of commit SHA
           $commitSha = "${{ github.sha }}"
           $versionSuffix = $commitSha.Substring(0, [Math]::Min(8, $commitSha.Length))
           $pkgJson = @{
             name = "@$owner/$packageNameWithVersion"
             version = "0.0.0-$versionSuffix"
-            description = "TodoList $version 构建产物 - ${{ github.sha }}"
+            description = "TodoList $version build artifact - ${{ github.sha }}"
             main = $packageName
             files = @($packageName)
             publishConfig = @{
@@ -104,27 +104,27 @@ jobs:
           
           $pkgJson | Out-File -FilePath "$packageDir/package.json" -Encoding utf8
           
-          # 配置 npm registry 和认证
-          # 注意：scope 需要匹配包名，但由于包名包含版本号，我们需要使用通配符或为每个包单独配置
-          # 这里使用 owner scope，npm 会自动处理子包
+          # Configure npm registry and authentication
+          # Note: scope needs to match package name, but since package name includes version, we need to use wildcard or configure separately
+          # Here we use owner scope, npm will automatically handle sub-packages
           $npmrcContent = "@$owner`:registry=https://npm.pkg.github.com`n//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}"
           $npmrcContent | Out-File -FilePath "$packageDir/.npmrc" -Encoding utf8
           
-          # 发布到 GitHub Packages
+          # Publish to GitHub Packages
           Push-Location $packageDir
           try {
             npm publish
-            echo "✅ 已上传到 GitHub Packages: @$owner/$packageNameWithVersion@0.0.0-$versionSuffix"
-            echo "🔗 查看地址: https://github.com/${{ github.repository }}/packages"
+            echo "✅ Uploaded to GitHub Packages: @$owner/$packageNameWithVersion@0.0.0-$versionSuffix"
+            echo "🔗 View at: https://github.com/${{ github.repository }}/packages"
           } catch {
-            Write-Error "❌ 发布失败: $_"
+            Write-Error "❌ Publish failed: $_"
             exit 1
           } finally {
             Pop-Location
             Remove-Item -Path $packageDir -Recurse -Force -ErrorAction SilentlyContinue
           }
 
-      - name: 保存构建产物
+      - name: Save build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-artifact
@@ -137,68 +137,68 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     
     steps:
-      - name: 检出代码
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # 获取完整历史用于查找上一个 tag
+          fetch-depth: 0  # Fetch full history for finding previous tag
 
-      - name: 设置 Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: 提取版本号
+      - name: Extract version
         id: version
         run: |
           VERSION=$(node -p "require('./package.json').version")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "版本号: $VERSION"
+          echo "Version: $VERSION"
 
-      - name: 下载构建产物
+      - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           name: build-artifact
           path: ./artifacts
 
-      - name: 查找 exe 文件
+      - name: Find exe file
         id: find-exe
         run: |
-          # 查找所有 exe 文件
+          # Find all exe files
           EXE_FILE=$(find artifacts -name "*.exe" -type f | head -n 1)
           if [ -z "$EXE_FILE" ]; then
-            echo "错误: 未找到 exe 文件"
-            echo "当前目录内容:"
+            echo "Error: exe file not found"
+            echo "Current directory contents:"
             ls -la artifacts/ || true
             exit 1
           fi
           EXE_NAME=$(basename "$EXE_FILE")
           echo "file_name=$EXE_NAME" >> $GITHUB_OUTPUT
           echo "file_path=$EXE_FILE" >> $GITHUB_OUTPUT
-          echo "找到文件: $EXE_NAME (路径: $EXE_FILE)"
+          echo "Found file: $EXE_NAME (path: $EXE_FILE)"
 
-      - name: 准备 Release 文件
+      - name: Prepare Release files
         run: |
           TAG_NAME=${GITHUB_REF#refs/tags/}
           NEW_NAME="TodoList-${TAG_NAME}.exe"
           mkdir -p dist
           cp "${{ steps.find-exe.outputs.file_path }}" "dist/$NEW_NAME"
           echo "NEW_NAME=$NEW_NAME" >> $GITHUB_ENV
-          echo "已准备文件: dist/$NEW_NAME"
+          echo "Prepared file: dist/$NEW_NAME"
 
-      - name: 获取上一个 Tag
+      - name: Get previous tag
         id: previous-tag
         run: |
-          # 获取所有 tags，按版本号排序
+          # Get all tags, sorted by version
           PREV_TAG=$(git tag --sort=-version:refname | sed -n '2p' || echo "")
           if [ -z "$PREV_TAG" ]; then
-            echo "没有找到上一个 tag，将生成完整变更日志"
+            echo "No previous tag found, will generate full changelog"
             echo "previous_tag=" >> $GITHUB_OUTPUT
           else
-            echo "上一个 tag: $PREV_TAG"
+            echo "Previous tag: $PREV_TAG"
             echo "previous_tag=$PREV_TAG" >> $GITHUB_OUTPUT
           fi
 
-      - name: 生成 Release Notes
+      - name: Generate Release Notes
         id: release-notes
         uses: actions/github-script@v7
         with:
@@ -209,10 +209,10 @@ jobs:
             const tagVersion = tagName.replace(/^v/, '');
             
             try {
-              // 获取提交记录
+              // Get commit records
               let commits = [];
               if (previousTag && previousTag.trim() !== '') {
-                // 获取两个 tag 之间的提交
+                // Get commits between two tags
                 const { data: compare } = await github.rest.repos.compareCommits({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
@@ -221,7 +221,7 @@ jobs:
                 });
                 commits = compare.commits || [];
               } else {
-                // 如果没有上一个 tag，获取最近的提交（最多100条）
+                // If no previous tag, get recent commits (max 100)
                 const { data: commitList } = await github.rest.repos.listCommits({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
@@ -231,7 +231,7 @@ jobs:
                 commits = commitList || [];
               }
               
-              // 分类提交
+              // Categorize commits
               const features = [];
               const fixes = [];
               const docs = [];
@@ -240,7 +240,7 @@ jobs:
               const others = [];
               
               commits.forEach(commit => {
-                const message = commit.commit.message.split('\n')[0]; // 只取第一行
+                const message = commit.commit.message.split('\n')[0]; // Only take first line
                 const author = commit.commit.author.name;
                 const sha = commit.sha.substring(0, 7);
                 const url = commit.html_url;
@@ -263,71 +263,71 @@ jobs:
                 }
               });
               
-              // 构建 Release Notes
-              // 使用数组构建，确保换行符正确
+              // Build Release Notes
+              // Use array to build, ensuring line breaks are correct
               const notesLines = [`## TodoList ${tagVersion}`, ''];
               
               if (commits.length === 0) {
-                notesLines.push('### 变更', '- 初始版本发布', '');
+                notesLines.push('### Changes', '- Initial release', '');
               } else {
                 if (features.length > 0) {
-                  notesLines.push('### ✨ 新功能', '');
+                  notesLines.push('### ✨ Features', '');
                   features.forEach(item => {
                     notesLines.push(item, '');
                   });
                 }
                 if (fixes.length > 0) {
-                  notesLines.push('### 🐛 修复', '');
+                  notesLines.push('### 🐛 Fixes', '');
                   fixes.forEach(item => {
                     notesLines.push(item, '');
                   });
                 }
                 if (refactor.length > 0) {
-                  notesLines.push('### ♻️ 重构', '');
+                  notesLines.push('### ♻️ Refactor', '');
                   refactor.forEach(item => {
                     notesLines.push(item, '');
                   });
                 }
                 if (docs.length > 0) {
-                  notesLines.push('### 📝 文档', '');
+                  notesLines.push('### 📝 Documentation', '');
                   docs.forEach(item => {
                     notesLines.push(item, '');
                   });
                 }
                 if (chore.length > 0) {
-                  notesLines.push('### 🔧 构建/工具', '');
+                  notesLines.push('### 🔧 Build/Tools', '');
                   chore.forEach(item => {
                     notesLines.push(item, '');
                   });
                 }
                 if (others.length > 0) {
-                  notesLines.push('### 📦 其他变更', '');
+                  notesLines.push('### 📦 Other Changes', '');
                   others.forEach(item => {
                     notesLines.push(item, '');
                   });
                 }
               }
               
-              // 添加统计信息
+              // Add statistics
               if (commits.length > 0) {
                 const compareUrl = previousTag 
                   ? `https://github.com/${context.repo.owner}/${context.repo.repo}/compare/${previousTag}...${tagName}`
                   : `https://github.com/${context.repo.owner}/${context.repo.repo}/commits/${tagName}`;
-                notesLines.push('---', '', `**统计**: 共 ${commits.length} 个提交`, '', `查看 [完整变更日志](${compareUrl})`);
+                notesLines.push('---', '', `**Statistics**: ${commits.length} commits`, '', `View [full changelog](${compareUrl})`);
               }
               
               const notes = notesLines.join('\n');
               
-              // 添加下载链接
-              const downloadSection = `\n\n---\n\n### 下载\n- [TodoList-${tagName}.exe](https://github.com/${context.repo.owner}/${context.repo.repo}/releases/download/${tagName}/TodoList-${tagName}.exe)`;
+              // Add download link
+              const downloadSection = `\n\n---\n\n### Download\n- [TodoList-${tagName}.exe](https://github.com/${context.repo.owner}/${context.repo.repo}/releases/download/${tagName}/TodoList-${tagName}.exe)`;
               const fullNotes = notes + downloadSection;
               
-              // 直接写入文件，确保换行符正确保留
+              // Write directly to file, ensuring line breaks are preserved
               const fs = require('fs');
               fs.writeFileSync('release-notes.md', fullNotes, 'utf8');
               
-              // 使用多行输出格式，避免换行符被转义
-              // 参考：https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#multiline-strings
+              // Use multiline output format to avoid line break escaping
+              // Reference: https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#multiline-strings
               const delimiter = 'EOF_RELEASE_NOTES';
               console.log(`result<<${delimiter}`);
               console.log(fullNotes);
@@ -335,18 +335,18 @@ jobs:
               
               return fullNotes;
             } catch (error) {
-              // 如果生成失败，返回默认内容
-              console.error('生成 Release Notes 失败:', error);
+              // If generation fails, return default content
+              console.error('Failed to generate Release Notes:', error);
               const compareUrl = previousTag 
                 ? `https://github.com/${context.repo.owner}/${context.repo.repo}/compare/${previousTag}...${tagName}`
                 : `https://github.com/${context.repo.owner}/${context.repo.repo}/commits/${tagName}`;
-              const fallbackNotes = `## TodoList ${tagVersion}\n\n### 变更\n- 查看 [提交历史](${compareUrl})`;
+              const fallbackNotes = `## TodoList ${tagVersion}\n\n### Changes\n- View [commit history](${compareUrl})`;
               core.setOutput('result', fallbackNotes);
               return fallbackNotes;
             }
 
 
-      - name: 创建 GitHub Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           files: dist/*.exe
