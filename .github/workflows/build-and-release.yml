@@ -35,6 +35,7 @@ jobs:
         run: npm run build
         env:
           ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+          PUBLISH: never  # 禁用 electron-builder 的自动发布功能
 
       - name: 提取版本号
         id: version
