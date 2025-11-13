@@ -317,8 +317,17 @@ jobs:
               }
               
               const notes = notesLines.join('\n');
-              core.setOutput('result', notes);
-              return notes;
+              
+              // 添加下载链接
+              const downloadSection = `\n\n---\n\n### 下载\n- [TodoList-${tagName}.exe](https://github.com/${context.repo.owner}/${context.repo.repo}/releases/download/${tagName}/TodoList-${tagName}.exe)`;
+              const fullNotes = notes + downloadSection;
+              
+              // 直接写入文件，确保换行符正确保留
+              const fs = require('fs');
+              fs.writeFileSync('release-notes.md', fullNotes, 'utf8');
+              
+              core.setOutput('result', fullNotes);
+              return fullNotes;
             } catch (error) {
               // 如果生成失败，返回默认内容
               console.error('生成 Release Notes 失败:', error);
@@ -330,19 +339,14 @@ jobs:
               return fallbackNotes;
             }
 
+
       - name: 创建 GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           files: dist/*.exe
           tag_name: ${{ github.ref_name }}
           name: Release ${{ steps.version.outputs.version }}
-          body: |
-            ${{ steps.release-notes.outputs.result }}
-            
-            ---
-            
-            ### 下载
-            - [TodoList-${{ github.ref_name }}.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/TodoList-${{ github.ref_name }}.exe)
+          body_path: release-notes.md
           draft: false
           prerelease: false
         env:
