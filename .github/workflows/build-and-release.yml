@@ -326,7 +326,13 @@ jobs:
               const fs = require('fs');
               fs.writeFileSync('release-notes.md', fullNotes, 'utf8');
               
-              core.setOutput('result', fullNotes);
+              // 使用多行输出格式，避免换行符被转义
+              // 参考：https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#multiline-strings
+              const delimiter = 'EOF_RELEASE_NOTES';
+              console.log(`result<<${delimiter}`);
+              console.log(fullNotes);
+              console.log(delimiter);
+              
               return fullNotes;
             } catch (error) {
               // 如果生成失败，返回默认内容
