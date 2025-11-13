@@ -1,12 +1,24 @@
 const { app, BrowserWindow, ipcMain, Menu, Tray } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
+
+// 设置缓存目录到用户可写的位置，避免权限错误
+const userCacheDir = path.join(os.homedir(), '.electron-todolist-cache');
+if (!fs.existsSync(userCacheDir)) {
+  fs.mkdirSync(userCacheDir, { recursive: true });
+}
+process.env.ELECTRON_CACHE = userCacheDir;
 
 // 禁用 GPU 硬件加速以解决 GPU 进程错误
 app.disableHardwareAcceleration();
 // 或者使用命令行参数方式（如果上面的方法不够）
 app.commandLine.appendSwitch('disable-gpu');
 app.commandLine.appendSwitch('disable-gpu-compositing');
+
+// 设置缓存目录，避免权限错误
+app.commandLine.appendSwitch('disk-cache-dir', userCacheDir);
+app.commandLine.appendSwitch('disk-cache-size', '104857600'); // 100MB
 
 let mainWindow;
 let groupWindows = new Map(); // 存储所有分组窗口
@@ -32,6 +44,17 @@ function ensureDataDir() {
 
 // 创建主窗口（分组列表）
 function createWindow() {
+  const iconPath = path.join(__dirname, 'build', 'icon.ico');
+  let windowIcon;
+  
+  try {
+    if (fs.existsSync(iconPath)) {
+      windowIcon = iconPath;
+    }
+  } catch (error) {
+    console.error('加载窗口图标失败:', error.message);
+  }
+  
   mainWindow = new BrowserWindow({
     width: 500,
     height: 650,
@@ -41,6 +64,7 @@ function createWindow() {
     transparent: false,
     resizable: true,
     backgroundColor: '#f5f5f5',
+    icon: windowIcon,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -71,6 +95,17 @@ function createGroupWindow(groupId, groupName) {
     return;
   }
 
+  const iconPath = path.join(__dirname, 'build', 'icon.ico');
+  let windowIcon;
+  
+  try {
+    if (fs.existsSync(iconPath)) {
+      windowIcon = iconPath;
+    }
+  } catch (error) {
+    console.error('加载窗口图标失败:', error.message);
+  }
+  
   const groupWindow = new BrowserWindow({
     width: 400,
     height: 600,
@@ -81,6 +116,7 @@ function createGroupWindow(groupId, groupName) {
     resizable: true,
     backgroundColor: '#f5f5f5',
     title: 'TodoList', // 使用固定标题，不再显示分组名称
+    icon: windowIcon,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -119,8 +155,32 @@ function createGroupWindow(groupId, groupName) {
 function createTray() {
   const { nativeImage } = require('electron');
   
-  // 使用空图标（Windows 会显示默认图标）
-  tray = new Tray(nativeImage.createEmpty());
+  // 使用应用图标
+  const iconPath = path.join(__dirname, 'build', 'icon.ico');
+  let trayIcon;
+  
+  try {
+    if (fs.existsSync(iconPath)) {
+      trayIcon = nativeImage.createFromPath(iconPath);
+      // 检查图标是否有效
+      if (trayIcon && !trayIcon.isEmpty()) {
+        // 设置托盘图标尺寸（Windows 推荐 16x16）
+        trayIcon = trayIcon.resize({ width: 16, height: 16 });
+      } else {
+        // 如果图标无效，使用空图标
+        trayIcon = nativeImage.createEmpty();
+      }
+    } else {
+      // 如果图标不存在，使用空图标
+      trayIcon = nativeImage.createEmpty();
+    }
+  } catch (error) {
+    console.error('加载托盘图标失败:', error.message);
+    // 如果加载失败，使用空图标
+    trayIcon = nativeImage.createEmpty();
+  }
+  
+  tray = new Tray(trayIcon);
   
   const contextMenu = Menu.buildFromTemplate([
     {
@@ -160,6 +220,15 @@ function createTray() {
 
 // 应用准备就绪
 app.whenReady().then(() => {
+  // 确保缓存目录存在
+  if (!fs.existsSync(userCacheDir)) {
+    try {
+      fs.mkdirSync(userCacheDir, { recursive: true });
+    } catch (error) {
+      console.warn('创建缓存目录失败:', error.message);
+    }
+  }
+  
   ensureDataDir();
   
   // 加载设置并应用开机自启动
