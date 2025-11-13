@@ -74,6 +74,10 @@ jobs:
           $repoParts = "${{ github.repository }}".Split('/')
           $owner = $repoParts[0].ToLower()  # GitHub Packages 要求包名全小写
           $repo = $repoParts[1].ToLower()   # GitHub Packages 要求包名全小写
+          $version = "${{ steps.version.outputs.version }}"
+          
+          # 包名包含版本号，实现按版本号分组
+          $packageNameWithVersion = "$repo-$version"
           $packageDir = "pkg-temp"
           
           # 创建临时包目录
@@ -83,10 +87,14 @@ jobs:
           Copy-Item $newPath "$packageDir/$packageName"
           
           # 创建 package.json 用于发布
+          # 包名格式：@owner/repo-1.0.0
+          # 版本号：使用 commit SHA 的前8位
+          $commitSha = "${{ github.sha }}"
+          $versionSuffix = $commitSha.Substring(0, [Math]::Min(8, $commitSha.Length))
           $pkgJson = @{
-            name = "@$owner/$repo"
-            version = "${{ steps.version.outputs.version }}-${{ github.sha }}"
-            description = "TodoList 构建产物 - ${{ github.sha }}"
+            name = "@$owner/$packageNameWithVersion"
+            version = "0.0.0-$versionSuffix"
+            description = "TodoList $version 构建产物 - ${{ github.sha }}"
             main = $packageName
             files = @($packageName)
             publishConfig = @{
@@ -96,7 +104,9 @@ jobs:
           
           $pkgJson | Out-File -FilePath "$packageDir/package.json" -Encoding utf8
           
-          # 配置 npm registry 和认证（scope 也需要小写）
+          # 配置 npm registry 和认证
+          # 注意：scope 需要匹配包名，但由于包名包含版本号，我们需要使用通配符或为每个包单独配置
+          # 这里使用 owner scope，npm 会自动处理子包
           $npmrcContent = "@$owner`:registry=https://npm.pkg.github.com`n//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}"
           $npmrcContent | Out-File -FilePath "$packageDir/.npmrc" -Encoding utf8
           
@@ -104,7 +114,7 @@ jobs:
           Push-Location $packageDir
           try {
             npm publish
-            echo "✅ 已上传到 GitHub Packages: @$owner/$repo@${{ steps.version.outputs.version }}-${{ github.sha }}"
+            echo "✅ 已上传到 GitHub Packages: @$owner/$packageNameWithVersion@0.0.0-$versionSuffix"
             echo "🔗 查看地址: https://github.com/${{ github.repository }}/packages"
           } catch {
             Write-Error "❌ 发布失败: $_"
