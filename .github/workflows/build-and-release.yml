@@ -25,6 +25,8 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@${{ github.repository_owner }}'
 
       - name: 安装依赖
         run: npm ci
@@ -58,6 +60,8 @@ jobs:
 
       - name: 上传到 GitHub Packages
         if: "!startsWith(github.ref, 'refs/tags/')"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $packageName = "todolist-${{ steps.version.outputs.version }}-${{ github.sha }}.exe"
           $packagePath = "${{ steps.find-artifact.outputs.file_path }}"
@@ -66,50 +70,48 @@ jobs:
           $newPath = Join-Path (Split-Path $packagePath) $packageName
           Copy-Item $packagePath $newPath -Force
           
-          $fileSize = (Get-Item $newPath).Length
-          $headers = @{
-            "Authorization" = "Bearer ${{ secrets.GITHUB_TOKEN }}"
-            "Accept" = "application/vnd.github+json"
-            "X-GitHub-Api-Version" = "2022-11-28"
-          }
+          # 准备发布到 GitHub Packages
+          $repoParts = "${{ github.repository }}".Split('/')
+          $owner = $repoParts[0]
+          $repo = $repoParts[1]
+          $packageDir = "pkg-temp"
           
-          # 创建 draft release 用于存储到 GitHub Packages
-          # GitHub Packages 会存储 Release 附件
-          $releaseUrl = "https://api.github.com/repos/${{ github.repository }}/releases"
-          $releaseBody = @{
-            tag_name = "build-${{ github.sha }}"
-            name = "Build ${{ steps.version.outputs.version }} - ${{ github.sha }}"
-            body = "自动构建产物`n版本: ${{ steps.version.outputs.version }}`n提交: ${{ github.sha }}`n分支: ${{ github.ref_name }}"
-            draft = $true
-            prerelease = $true
-          } | ConvertTo-Json -Compress
+          # 创建临时包目录
+          New-Item -ItemType Directory -Path $packageDir -Force | Out-Null
           
+          # 复制 exe 文件到包目录
+          Copy-Item $newPath "$packageDir/$packageName"
+          
+          # 创建 package.json 用于发布
+          $pkgJson = @{
+            name = "@$owner/$repo"
+            version = "${{ steps.version.outputs.version }}-${{ github.sha }}"
+            description = "TodoList 构建产物 - ${{ github.sha }}"
+            main = $packageName
+            files = @($packageName)
+            publishConfig = @{
+              registry = "https://npm.pkg.github.com"
+            }
+          } | ConvertTo-Json
+          
+          $pkgJson | Out-File -FilePath "$packageDir/package.json" -Encoding utf8
+          
+          # 配置 npm registry 和认证
+          $npmrcContent = "@$owner`:registry=https://npm.pkg.github.com`n//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}"
+          $npmrcContent | Out-File -FilePath "$packageDir/.npmrc" -Encoding utf8
+          
+          # 发布到 GitHub Packages
+          Push-Location $packageDir
           try {
-            $releaseResponse = Invoke-RestMethod -Uri $releaseUrl -Method Post -Headers $headers -Body $releaseBody -ContentType "application/json"
-            $releaseId = $releaseResponse.id
-            
-            # 上传文件到 Release（会存储在 GitHub Packages 中）
-            $uploadUrl = "https://uploads.github.com/repos/${{ github.repository }}/releases/$releaseId/assets?name=$packageName"
-            $fileContent = [System.IO.File]::ReadAllBytes($newPath)
-            
-            $uploadHeaders = @{
-              "Authorization" = "Bearer ${{ secrets.GITHUB_TOKEN }}"
-              "Content-Type" = "application/octet-stream"
-            }
-            
-            Invoke-RestMethod -Uri $uploadUrl -Method Post -Headers $uploadHeaders -Body $fileContent
-            
-            echo "✅ 已上传到 GitHub Packages: $packageName"
-            echo "📦 Release ID: $releaseId"
-            echo "🔗 查看地址: https://github.com/${{ github.repository }}/releases/tag/build-${{ github.sha }}"
+            npm publish
+            echo "✅ 已上传到 GitHub Packages: @$owner/$repo@${{ steps.version.outputs.version }}-${{ github.sha }}"
+            echo "🔗 查看地址: https://github.com/${{ github.repository }}/packages"
           } catch {
-            Write-Error "❌ 上传失败: $_"
-            if ($_.Exception.Response) {
-              $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
-              $responseBody = $reader.ReadToEnd()
-              Write-Error "响应内容: $responseBody"
-            }
+            Write-Error "❌ 发布失败: $_"
             exit 1
+          } finally {
+            Pop-Location
+            Remove-Item -Path $packageDir -Recurse -Force -ErrorAction SilentlyContinue
           }
 
       - name: 保存构建产物
