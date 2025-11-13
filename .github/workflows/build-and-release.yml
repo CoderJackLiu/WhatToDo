@@ -129,6 +129,8 @@ jobs:
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整历史用于查找上一个 tag
 
       - name: 设置 Node.js
         uses: actions/setup-node@v4
@@ -173,6 +175,55 @@ jobs:
           echo "NEW_NAME=$NEW_NAME" >> $GITHUB_ENV
           echo "已准备文件: dist/$NEW_NAME"
 
+      - name: 获取上一个 Tag
+        id: previous-tag
+        run: |
+          # 获取所有 tags，按版本号排序
+          PREV_TAG=$(git tag --sort=-version:refname | sed -n '2p' || echo "")
+          if [ -z "$PREV_TAG" ]; then
+            echo "没有找到上一个 tag，将生成完整变更日志"
+            echo "previous_tag=" >> $GITHUB_OUTPUT
+          else
+            echo "上一个 tag: $PREV_TAG"
+            echo "previous_tag=$PREV_TAG" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 生成 Release Notes
+        id: release-notes
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const tagName = '${{ github.ref_name }}';
+            const previousTag = '${{ steps.previous-tag.outputs.previous_tag }}';
+            
+            try {
+              // 使用 GitHub API 自动生成 Release Notes
+              const params = {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag_name: tagName,
+              };
+              
+              // 如果有上一个 tag，则指定 previous_tag_name
+              if (previousTag && previousTag.trim() !== '') {
+                params.previous_tag_name = previousTag;
+              }
+              
+              const { data: releaseNotes } = await github.rest.repos.generateReleaseNotes(params);
+              
+              // 返回生成的 Release Notes
+              core.setOutput('result', releaseNotes.body);
+              return releaseNotes.body;
+            } catch (error) {
+              // 如果生成失败，返回默认内容
+              console.error('生成 Release Notes 失败:', error);
+              const tagVersion = tagName.replace(/^v/, '');
+              const fallbackNotes = `## TodoList ${tagVersion}\n\n### 变更\n- 查看 [提交历史](https://github.com/${context.repo.owner}/${context.repo.repo}/compare/${previousTag || 'HEAD'}...${tagName})`;
+              core.setOutput('result', fallbackNotes);
+              return fallbackNotes;
+            }
+
       - name: 创建 GitHub Release
         uses: softprops/action-gh-release@v1
         with:
@@ -180,13 +231,12 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ steps.version.outputs.version }}
           body: |
-            ## TodoList ${{ steps.version.outputs.version }}
+            ${{ steps.release-notes.outputs.result }}
+            
+            ---
             
             ### 下载
             - [TodoList-${{ github.ref_name }}.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/TodoList-${{ github.ref_name }}.exe)
-            
-            ### 变更
-            - 查看 [提交历史](https://github.com/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.sha }})
           draft: false
           prerelease: false
         env:
