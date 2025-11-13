@@ -1,0 +1,192 @@
+name: 构建和发布
+
+on:
+  # 所有分支的 push 事件和 Tag 推送事件
+  push:
+    branches:
+      - '**'
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 构建应用
+        run: npm run build
+        env:
+          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+
+      - name: 提取版本号
+        id: version
+        run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+          echo "版本号: $version"
+
+      - name: 查找构建产物
+        id: find-artifact
+        run: |
+          $exeFile = Get-ChildItem -Path dist -Filter *.exe -Recurse | Select-Object -First 1
+          if ($exeFile) {
+            $fileName = $exeFile.Name
+            $filePath = $exeFile.FullName
+            echo "file_name=$fileName" >> $env:GITHUB_OUTPUT
+            echo "file_path=$filePath" >> $env:GITHUB_OUTPUT
+            echo "找到构建产物: $fileName"
+          } else {
+            echo "错误: 未找到 exe 文件"
+            exit 1
+          }
+
+      - name: 上传到 GitHub Packages
+        if: "!startsWith(github.ref, 'refs/tags/')"
+        run: |
+          $packageName = "todolist-${{ steps.version.outputs.version }}-${{ github.sha }}.exe"
+          $packagePath = "${{ steps.find-artifact.outputs.file_path }}"
+          
+          # 重命名文件
+          $newPath = Join-Path (Split-Path $packagePath) $packageName
+          Copy-Item $packagePath $newPath -Force
+          
+          $fileSize = (Get-Item $newPath).Length
+          $headers = @{
+            "Authorization" = "Bearer ${{ secrets.GITHUB_TOKEN }}"
+            "Accept" = "application/vnd.github+json"
+            "X-GitHub-Api-Version" = "2022-11-28"
+          }
+          
+          # 创建 draft release 用于存储到 GitHub Packages
+          # GitHub Packages 会存储 Release 附件
+          $releaseUrl = "https://api.github.com/repos/${{ github.repository }}/releases"
+          $releaseBody = @{
+            tag_name = "build-${{ github.sha }}"
+            name = "Build ${{ steps.version.outputs.version }} - ${{ github.sha }}"
+            body = "自动构建产物`n版本: ${{ steps.version.outputs.version }}`n提交: ${{ github.sha }}`n分支: ${{ github.ref_name }}"
+            draft = $true
+            prerelease = $true
+          } | ConvertTo-Json -Compress
+          
+          try {
+            $releaseResponse = Invoke-RestMethod -Uri $releaseUrl -Method Post -Headers $headers -Body $releaseBody -ContentType "application/json"
+            $releaseId = $releaseResponse.id
+            
+            # 上传文件到 Release（会存储在 GitHub Packages 中）
+            $uploadUrl = "https://uploads.github.com/repos/${{ github.repository }}/releases/$releaseId/assets?name=$packageName"
+            $fileContent = [System.IO.File]::ReadAllBytes($newPath)
+            
+            $uploadHeaders = @{
+              "Authorization" = "Bearer ${{ secrets.GITHUB_TOKEN }}"
+              "Content-Type" = "application/octet-stream"
+            }
+            
+            Invoke-RestMethod -Uri $uploadUrl -Method Post -Headers $uploadHeaders -Body $fileContent
+            
+            echo "✅ 已上传到 GitHub Packages: $packageName"
+            echo "📦 Release ID: $releaseId"
+            echo "🔗 查看地址: https://github.com/${{ github.repository }}/releases/tag/build-${{ github.sha }}"
+          } catch {
+            Write-Error "❌ 上传失败: $_"
+            if ($_.Exception.Response) {
+              $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
+              $responseBody = $reader.ReadToEnd()
+              Write-Error "响应内容: $responseBody"
+            }
+            exit 1
+          }
+
+      - name: 保存构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact
+          path: ${{ steps.find-artifact.outputs.file_path }}
+          retention-days: 30
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 提取版本号
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "版本号: $VERSION"
+
+      - name: 下载构建产物
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifact
+          path: ./artifacts
+
+      - name: 查找 exe 文件
+        id: find-exe
+        run: |
+          # 查找所有 exe 文件
+          EXE_FILE=$(find artifacts -name "*.exe" -type f | head -n 1)
+          if [ -z "$EXE_FILE" ]; then
+            echo "错误: 未找到 exe 文件"
+            echo "当前目录内容:"
+            ls -la artifacts/ || true
+            exit 1
+          fi
+          EXE_NAME=$(basename "$EXE_FILE")
+          echo "file_name=$EXE_NAME" >> $GITHUB_OUTPUT
+          echo "file_path=$EXE_FILE" >> $GITHUB_OUTPUT
+          echo "找到文件: $EXE_NAME (路径: $EXE_FILE)"
+
+      - name: 准备 Release 文件
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          NEW_NAME="TodoList-${TAG_NAME}.exe"
+          mkdir -p dist
+          cp "${{ steps.find-exe.outputs.file_path }}" "dist/$NEW_NAME"
+          echo "NEW_NAME=$NEW_NAME" >> $GITHUB_ENV
+          echo "已准备文件: dist/$NEW_NAME"
+
+      - name: 创建 GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/*.exe
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ steps.version.outputs.version }}
+          body: |
+            ## TodoList ${{ steps.version.outputs.version }}
+            
+            ### 下载
+            - [TodoList-${{ github.ref_name }}.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/TodoList-${{ github.ref_name }}.exe)
+            
+            ### 变更
+            - 查看 [提交历史](https://github.com/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.sha }})
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
