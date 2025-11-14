@@ -146,6 +146,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@${{ github.repository_owner }}'
 
       - name: Extract version
         id: version
@@ -184,6 +186,52 @@ jobs:
           cp "${{ steps.find-exe.outputs.file_path }}" "dist/$NEW_NAME"
           echo "NEW_NAME=$NEW_NAME" >> $GITHUB_ENV
           echo "Prepared file: dist/$NEW_NAME"
+
+      - name: Upload to GitHub Packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          PACKAGE_NAME="todolist-${{ steps.version.outputs.version }}-${TAG_NAME}.exe"
+          PACKAGE_PATH="dist/TodoList-${TAG_NAME}.exe"
+          
+          # Prepare for publishing to GitHub Packages
+          REPO_PARTS="${{ github.repository }}"
+          OWNER=$(echo "$REPO_PARTS" | cut -d'/' -f1 | tr '[:upper:]' '[:lower:]')
+          REPO=$(echo "$REPO_PARTS" | cut -d'/' -f2 | tr '[:upper:]' '[:lower:]')
+          VERSION="${{ steps.version.outputs.version }}"
+          
+          # Package name includes version number for grouping by version
+          PACKAGE_NAME_WITH_VERSION="${REPO}-${VERSION}"
+          PACKAGE_DIR="pkg-temp"
+          
+          # Create temporary package directory
+          mkdir -p "$PACKAGE_DIR"
+          
+          # Copy exe file to package directory
+          cp "$PACKAGE_PATH" "$PACKAGE_DIR/$PACKAGE_NAME"
+          
+          # Create package.json for publishing
+          # Package name format: @owner/repo-1.0.0
+          # Version: use tag name (remove 'v' prefix if exists)
+          VERSION_SUFFIX=$(echo "$TAG_NAME" | sed 's/^v//')
+          printf '{\n  "name": "@%s/%s",\n  "version": "%s",\n  "description": "TodoList %s release artifact - %s",\n  "main": "%s",\n  "files": ["%s"],\n  "publishConfig": {\n    "registry": "https://npm.pkg.github.com"\n  }\n}' \
+            "$OWNER" "$PACKAGE_NAME_WITH_VERSION" "$VERSION_SUFFIX" "$VERSION" "$TAG_NAME" "$PACKAGE_NAME" "$PACKAGE_NAME" > "$PACKAGE_DIR/package.json"
+          
+          # Configure npm registry and authentication
+          echo "@${OWNER}:registry=https://npm.pkg.github.com" > "$PACKAGE_DIR/.npmrc"
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> "$PACKAGE_DIR/.npmrc"
+          
+          # Publish to GitHub Packages
+          cd "$PACKAGE_DIR"
+          npm publish || {
+            echo "❌ Publish failed"
+            exit 1
+          }
+          echo "✅ Uploaded to GitHub Packages: @${OWNER}/${PACKAGE_NAME_WITH_VERSION}@${VERSION_SUFFIX}"
+          echo "🔗 View at: https://github.com/${{ github.repository }}/packages"
+          cd ..
+          rm -rf "$PACKAGE_DIR"
 
       - name: Get previous tag
         id: previous-tag
