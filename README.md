@@ -74,6 +74,16 @@ npm run build
 - Node.js
 - Supabase (认证和数据同步)
 
+## 📦 依赖说明
+
+详细的依赖信息请参考 [DEPENDENCIES.md](./DEPENDENCIES.md)
+
+**生产依赖**：
+- `@supabase/supabase-js` - Supabase 客户端库
+- `tslib` - TypeScript 辅助库（@supabase/supabase-js 的依赖）
+
+electron-builder 会自动打包所有 `dependencies` 中的包及其依赖。
+
 ## 📜 许可证
 
 MIT License
