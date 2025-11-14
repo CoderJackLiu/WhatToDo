@@ -49,15 +49,19 @@ jobs:
           $exeFile = Get-ChildItem -Path dist -Filter *.exe -Recurse | Select-Object -First 1
           if ($exeFile) {
             $fileName = $exeFile.Name
-            # Get relative path from workspace root
+            # Get relative path from workspace root using proper path handling
             $workspaceRoot = $env:GITHUB_WORKSPACE
             $fullPath = $exeFile.FullName
-            $relativePath = $fullPath.Replace($workspaceRoot, '').TrimStart('\', '/')
+            # Use .NET Path methods for reliable path handling
+            $relativePath = [System.IO.Path]::GetRelativePath($workspaceRoot, $fullPath)
+            # Normalize path separators to forward slashes for cross-platform compatibility
+            $relativePath = $relativePath.Replace('\', '/')
             echo "file_name=$fileName" >> $env:GITHUB_OUTPUT
             echo "file_path=$relativePath" >> $env:GITHUB_OUTPUT
             echo "Found build artifact: $fileName"
             echo "Full path: $fullPath"
             echo "Relative path: $relativePath"
+            echo "Workspace root: $workspaceRoot"
           } else {
             echo "Error: exe file not found in dist directory"
             Get-ChildItem -Path dist -Recurse | Select-Object FullName | ForEach-Object { echo $_.FullName }
@@ -150,16 +154,30 @@ jobs:
             const exePath = '${{ steps.find-artifact.outputs.file_path }}';
             const packageName = `todolist-${version}-${shortSha}.exe`;
             
-            // Resolve absolute path
-            const absoluteExePath = path.resolve(exePath);
+            // Get workspace root from environment
+            const workspaceRoot = process.env.GITHUB_WORKSPACE || process.cwd();
+            
+            // Resolve absolute path using workspace root
+            const absoluteExePath = path.resolve(workspaceRoot, exePath);
+            
+            // Normalize path separators
+            const normalizedPath = absoluteExePath.replace(/\\/g, '/');
             
             // Verify file exists
-            if (!fs.existsSync(absoluteExePath)) {
-              throw new Error(`Exe file not found at: ${absoluteExePath} (resolved from: ${exePath})`);
+            if (!fs.existsSync(normalizedPath)) {
+              // Try with original path as fallback
+              if (!fs.existsSync(absoluteExePath)) {
+                console.error(`Workspace root: ${workspaceRoot}`);
+                console.error(`Exe path from step: ${exePath}`);
+                console.error(`Resolved path: ${absoluteExePath}`);
+                console.error(`Normalized path: ${normalizedPath}`);
+                throw new Error(`Exe file not found at: ${normalizedPath} (resolved from: ${exePath})`);
+              }
             }
             
-            // Read the exe file
-            const exeBuffer = fs.readFileSync(absoluteExePath);
+            // Read the exe file (use normalized path if it exists, otherwise original)
+            const finalPath = fs.existsSync(normalizedPath) ? normalizedPath : absoluteExePath;
+            const exeBuffer = fs.readFileSync(finalPath);
             
             // Create a pre-release for storing build artifacts
             const releaseName = `Build ${version} (${shortSha})`;
