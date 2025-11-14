@@ -124,6 +124,187 @@ jobs:
             Remove-Item -Path $packageDir -Recurse -Force -ErrorAction SilentlyContinue
           }
 
+      - name: Create Pre-Release and Update Packages Directory
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            const version = '${{ steps.version.outputs.version }}';
+            const commitSha = '${{ github.sha }}';
+            const shortSha = commitSha.substring(0, 8);
+            const branch = '${{ github.ref_name }}';
+            const repo = '${{ github.repository }}';
+            const [owner, repoName] = repo.split('/');
+            
+            // Find the exe file
+            const exePath = '${{ steps.find-artifact.outputs.file_path }}';
+            const packageName = `todolist-${version}-${shortSha}.exe`;
+            
+            // Read the exe file
+            const exeBuffer = fs.readFileSync(exePath);
+            
+            // Create a pre-release for storing build artifacts
+            const releaseName = `Build ${version} (${shortSha})`;
+            const releaseTag = `build-${version}-${shortSha}`;
+            
+            try {
+              // Check if release tag already exists
+              let release;
+              try {
+                const { data: existingRelease } = await github.rest.repos.getReleaseByTag({
+                  owner: owner,
+                  repo: repoName,
+                  tag: releaseTag
+                });
+                release = existingRelease;
+                console.log(`Pre-release ${releaseTag} already exists`);
+              } catch (error) {
+                if (error.status === 404) {
+                  // Create new pre-release
+                  const { data: newRelease } = await github.rest.repos.createRelease({
+                    owner: owner,
+                    repo: repoName,
+                    tag_name: releaseTag,
+                    name: releaseName,
+                    body: `自动构建产物 - 版本 ${version}\n\n提交: ${commitSha}\n分支: ${branch}\n\n这是自动构建的预发布版本，用于提供下载链接。`,
+                    draft: false,
+                    prerelease: true
+                  });
+                  release = newRelease;
+                  console.log(`Created pre-release ${releaseTag}`);
+                } else {
+                  throw error;
+                }
+              }
+              
+              // Check if asset already exists
+              const assetName = packageName;
+              let asset = null;
+              try {
+                const { data: assets } = await github.rest.repos.listReleaseAssets({
+                  owner: owner,
+                  repo: repoName,
+                  release_id: release.id
+                });
+                asset = assets.find(a => a.name === assetName);
+                if (asset) {
+                  console.log(`Asset ${assetName} already exists: ${asset.browser_download_url}`);
+                }
+              } catch (error) {
+                console.warn('Warning: Could not list assets:', error.message);
+              }
+              
+              // Upload asset if it doesn't exist
+              if (!asset) {
+                try {
+                  const { data: newAsset } = await github.rest.repos.uploadReleaseAsset({
+                    owner: owner,
+                    repo: repoName,
+                    release_id: release.id,
+                    name: assetName,
+                    data: exeBuffer
+                  });
+                  asset = newAsset;
+                  console.log(`✅ Uploaded asset: ${asset.browser_download_url}`);
+                } catch (error) {
+                  console.error('Failed to upload asset:', error);
+                  throw error;
+                }
+              }
+              
+              // Ensure asset exists
+              if (!asset || !asset.browser_download_url) {
+                throw new Error('Failed to get asset download URL');
+              }
+              
+              // Update packages/README.md using GitHub API
+              const readmePath = 'packages/README.md';
+              const downloadUrl = asset.browser_download_url;
+              const readmeContent = `# 构建产物下载
+
+## 最新构建
+
+- **版本**: ${version}
+- **提交**: [${shortSha}](https://github.com/${repo}/commit/${commitSha})
+- **分支**: ${branch}
+- **构建时间**: ${new Date().toISOString()}
+
+### 下载链接
+
+- [${packageName}](${downloadUrl})
+
+---
+
+## 说明
+
+此目录包含自动构建的产物。每次 push 提交时，会自动构建并上传最新的安装包。
+
+### 如何下载
+
+1. 点击上方的下载链接
+2. 下载完成后，双击运行安装程序
+
+### 历史版本
+
+历史版本可以在 [GitHub Releases](https://github.com/${repo}/releases) 页面查看。
+`;
+              
+              const readmeContentBase64 = Buffer.from(readmeContent, 'utf8').toString('base64');
+              
+              try {
+                // Try to get existing file to get its SHA
+                let fileSha = null;
+                try {
+                  const { data: existingFile } = await github.rest.repos.getContent({
+                    owner: owner,
+                    repo: repoName,
+                    path: readmePath,
+                    ref: branch
+                  });
+                  
+                  // Handle both array and object responses
+                  const fileData = Array.isArray(existingFile) ? existingFile[0] : existingFile;
+                  if (fileData && fileData.sha) {
+                    fileSha = fileData.sha;
+                  }
+                } catch (error) {
+                  if (error.status !== 404) {
+                    console.warn('Warning: Could not get existing file:', error.message);
+                  }
+                  // File doesn't exist, will create new one
+                }
+                
+                // Create or update file
+                const updateParams = {
+                  owner: owner,
+                  repo: repoName,
+                  path: readmePath,
+                  message: `docs: 更新 packages 目录下载链接 [skip ci]`,
+                  content: readmeContentBase64,
+                  branch: branch
+                };
+                
+                if (fileSha) {
+                  updateParams.sha = fileSha;
+                }
+                
+                await github.rest.repos.createOrUpdateFileContents(updateParams);
+                
+                console.log('✅ Updated packages/README.md via GitHub API');
+              } catch (error) {
+                console.error('Failed to update README via API:', error);
+                throw error;
+              }
+              
+            } catch (error) {
+              console.error('❌ Error:', error);
+              throw error;
+            }
+
       - name: Save build artifacts
         uses: actions/upload-artifact@v4
         with:
