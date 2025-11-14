@@ -83,49 +83,82 @@ function applyThemeMode(mode) {
   }
 }
 
-// 加载分组数据
+// 加载分组数据（从云端）
 async function loadGroupData() {
+  if (!currentGroupId) return;
+  
   try {
-    const data = await window.electronAPI.loadGroups();
-    groups = data.groups || [];
+    // 加载分组信息（获取主题）
+    const groupsResult = await window.electronAPI.data.loadGroups();
+    if (groupsResult.success) {
+      const group = groupsResult.data.find(g => g.id === currentGroupId);
+      if (group) {
+        // 加载并应用分组的主题（标题栏颜色）
+        const groupTheme = group.theme || 'default';
+        currentTheme = groupTheme;
+        // 延迟应用主题，确保主题模式已加载
+        setTimeout(() => {
+          applyTheme(groupTheme);
+        }, 100);
+      }
+    }
     
-    const group = groups.find(g => g.id === currentGroupId);
-    if (group) {
-      todos = group.todos || [];
-      // 加载并应用分组的主题（标题栏颜色）
-      const groupTheme = group.theme || 'default';
-      currentTheme = groupTheme;
-      // 延迟应用主题，确保主题模式已加载
-      setTimeout(() => {
-        applyTheme(groupTheme);
-      }, 100);
+    // 加载待办事项
+    const todosResult = await window.electronAPI.data.loadTodos(currentGroupId);
+    if (todosResult.success) {
+      // 转换数据格式：将云端数据转换为本地格式
+      todos = todosResult.data.map(t => ({
+        id: t.id,
+        text: t.text,
+        completed: t.completed,
+        createdAt: new Date(t.created_at).getTime(),
+        updatedAt: new Date(t.updated_at).getTime()
+      }));
+      renderTodos();
+    } else {
+      console.error('加载待办失败:', todosResult.error);
+      todos = [];
       renderTodos();
     }
+    
+    // 订阅待办变化（实时同步）
+    subscribeToTodos();
+    
     // 确保显示标题栏和底部
     showTitlebarAndFooter();
   } catch (error) {
     console.error('加载分组数据失败:', error);
     todos = [];
+    renderTodos();
     // 即使出错也显示标题栏和底部
     showTitlebarAndFooter();
   }
 }
 
-// 保存分组数据
-async function saveGroupData() {
-  try {
-    const group = groups.find(g => g.id === currentGroupId);
-    if (group) {
-      group.todos = todos;
-      group.theme = currentTheme; // 保存主题到分组
-      group.updatedAt = Date.now();
-      await window.electronAPI.saveGroups({ groups });
-      // 通知主窗口刷新
-      window.electronAPI.notifyGroupsChanged();
-    }
-  } catch (error) {
-    console.error('保存分组数据失败:', error);
+// 订阅待办变化（实时同步）
+let todosSubscription = null;
+function subscribeToTodos() {
+  if (!currentGroupId) return;
+  
+  // 取消之前的订阅
+  if (todosSubscription) {
+    todosSubscription();
+    todosSubscription = null;
   }
+  
+  todosSubscription = window.electronAPI.data.subscribeToTodos(currentGroupId, (payload) => {
+    // 处理实时更新
+    if (payload.eventType === 'INSERT') {
+      // 新增待办
+      loadGroupData();
+    } else if (payload.eventType === 'UPDATE') {
+      // 更新待办
+      loadGroupData();
+    } else if (payload.eventType === 'DELETE') {
+      // 删除待办
+      loadGroupData();
+    }
+  });
 }
 
 // 绑定事件
@@ -237,63 +270,97 @@ function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
-// 添加待办事项
-function addTodo() {
+// 添加待办事项（云端）
+async function addTodo() {
   const text = todoInput.value.trim();
   
-  if (!text) {
+  if (!text || !currentGroupId) {
     return;
   }
   
-  const newTodo = {
-    id: generateId(),
-    text: text,
-    completed: false,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
-  };
-  
-  todos.unshift(newTodo);
   todoInput.value = '';
   
-  saveGroupData();
-  renderTodos();
-}
-
-// 切换完成状态
-function toggleTodo(id) {
-  const todo = todos.find(t => t.id === id);
-  if (todo) {
-    todo.completed = !todo.completed;
-    todo.updatedAt = Date.now();
-    saveGroupData();
-    renderTodos();
+  try {
+    const result = await window.electronAPI.data.createTodo(currentGroupId, text);
+    if (result.success) {
+      // 重新加载待办列表（实时同步会自动更新，但这里立即更新UI）
+      await loadGroupData();
+    } else {
+      alert('添加待办失败：' + (result.error || '未知错误'));
+    }
+  } catch (error) {
+    console.error('添加待办失败:', error);
+    alert('添加待办失败：' + error.message);
   }
 }
 
-// 删除待办事项
-function deleteTodo(id) {
-  const index = todos.findIndex(t => t.id === id);
-  if (index !== -1) {
-    const item = document.querySelector(`[data-id="${id}"]`);
+// 切换完成状态（云端）
+async function toggleTodo(id) {
+  const todo = todos.find(t => t.id === id);
+  if (!todo) return;
+  
+  try {
+    const result = await window.electronAPI.data.updateTodo(id, {
+      completed: !todo.completed
+    });
+    if (result.success) {
+      // 重新加载待办列表
+      await loadGroupData();
+    } else {
+      console.error('更新待办失败:', result.error);
+    }
+  } catch (error) {
+    console.error('更新待办失败:', error);
+  }
+}
+
+// 删除待办事项（云端）
+async function deleteTodo(id) {
+  const item = document.querySelector(`[data-id="${id}"]`);
+  if (item) {
+    item.classList.add('removing');
+  }
+  
+  try {
+    const result = await window.electronAPI.data.deleteTodo(id);
+    if (result.success) {
+      // 重新加载待办列表
+      await loadGroupData();
+    } else {
+      alert('删除待办失败：' + (result.error || '未知错误'));
+      if (item) {
+        item.classList.remove('removing');
+      }
+    }
+  } catch (error) {
+    console.error('删除待办失败:', error);
+    alert('删除待办失败：' + error.message);
     if (item) {
-      item.classList.add('removing');
-      setTimeout(() => {
-        todos.splice(index, 1);
-        saveGroupData();
-        renderTodos();
-      }, 300);
+      item.classList.remove('removing');
     }
   }
 }
 
-// 编辑待办事项
-function editTodo(id, newText) {
-  const todo = todos.find(t => t.id === id);
-  if (todo && newText.trim()) {
-    todo.text = newText.trim();
-    todo.updatedAt = Date.now();
-    saveGroupData();
+// 编辑待办事项（云端）
+async function editTodo(id, newText) {
+  if (!newText.trim()) {
+    renderTodos();
+    return;
+  }
+  
+  try {
+    const result = await window.electronAPI.data.updateTodo(id, {
+      text: newText.trim()
+    });
+    if (result.success) {
+      // 重新加载待办列表
+      await loadGroupData();
+    } else {
+      console.error('更新待办失败:', result.error);
+      renderTodos();
+    }
+  } catch (error) {
+    console.error('更新待办失败:', error);
     renderTodos();
   }
 }
@@ -344,14 +411,28 @@ function startEdit(id) {
   });
 }
 
-// 清除已完成
-function clearCompleted() {
-  const hasCompleted = todos.some(t => t.completed);
-  if (!hasCompleted) return;
+// 清除已完成（云端）
+async function clearCompleted() {
+  const completedTodos = todos.filter(t => t.completed);
+  if (completedTodos.length === 0) return;
   
-  todos = todos.filter(t => !t.completed);
-  saveGroupData();
-  renderTodos();
+  if (!confirm(`确定要删除 ${completedTodos.length} 个已完成的待办事项吗？`)) {
+    return;
+  }
+  
+  try {
+    const ids = completedTodos.map(t => t.id);
+    const result = await window.electronAPI.data.deleteTodos(ids);
+    if (result.success) {
+      // 重新加载待办列表
+      await loadGroupData();
+    } else {
+      alert('清除失败：' + (result.error || '未知错误'));
+    }
+  } catch (error) {
+    console.error('清除失败:', error);
+    alert('清除失败：' + error.message);
+  }
 }
 
 // 渲染待办列表
@@ -468,19 +549,30 @@ function handleTodoDragOver(e) {
   }
 }
 
-function handleTodoDrop(e) {
+async function handleTodoDrop(e) {
   e.stopPropagation();
   e.preventDefault();
   
   // 更新数据顺序
   const items = Array.from(todoList.querySelectorAll('.todo-item'));
-  const newTodos = items.map(item => {
-    const todoId = item.getAttribute('data-id');
-    return todos.find(t => t.id === todoId);
-  }).filter(t => t);
+  const newTodoIds = items.map(item => {
+    return item.getAttribute('data-id');
+  }).filter(id => id);
   
-  todos = newTodos;
-  saveGroupData();
+  // 更新云端数据顺序
+  if (!currentGroupId) return;
+  
+  try {
+    const result = await window.electronAPI.data.reorderTodos(currentGroupId, newTodoIds);
+    if (result.success) {
+      // 重新加载待办列表
+      await loadGroupData();
+    } else {
+      console.error('重新排序失败:', result.error);
+    }
+  } catch (error) {
+    console.error('重新排序失败:', error);
+  }
 }
 
 function handleTodoDragEnd(e) {
@@ -717,14 +809,24 @@ function adjustColorForDarkMode(hex, brightness = 0.6) {
   return rgbToHex(newR, newG, newB);
 }
 
-// 选择主题
-function selectTheme(theme) {
-  if (!themes[theme]) return;
+// 选择主题（云端）
+async function selectTheme(theme) {
+  if (!themes[theme] || !currentGroupId) return;
   
   currentTheme = theme;
   applyTheme(theme);
-  // 保存到分组数据
-  saveGroupData();
+  
+  // 保存主题到云端
+  try {
+    const result = await window.electronAPI.data.updateGroup(currentGroupId, {
+      theme: theme
+    });
+    if (!result.success) {
+      console.error('保存主题失败:', result.error);
+    }
+  } catch (error) {
+    console.error('保存主题失败:', error);
+  }
 }
 
 // 切换主题菜单显示

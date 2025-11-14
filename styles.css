@@ -1127,3 +1127,321 @@ body.dark-theme .settings-item-desc {
   color: #a0a0a0;
 }
 
+/* ========== 登录界面样式 ========== */
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+  background-color: #fefaed;
+  transition: background-color 0.3s ease;
+}
+
+body.dark-theme .login-container {
+  background-color: #1e1e1e;
+}
+
+.login-box {
+  width: 100%;
+  max-width: 400px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 40px;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+body.dark-theme .login-box {
+  background: #2d2d2d;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.login-header h1 {
+  font-size: 32px;
+  margin-bottom: 8px;
+  color: #5c4f3a;
+  transition: color 0.3s ease;
+}
+
+body.dark-theme .login-header h1 {
+  color: #e0e0e0;
+}
+
+.login-subtitle {
+  color: #888;
+  font-size: 14px;
+  transition: color 0.3s ease;
+}
+
+body.dark-theme .login-subtitle {
+  color: #a0a0a0;
+}
+
+.login-form {
+  margin-bottom: 24px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #e8dcc3;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fffef8;
+  color: #5c4f3a;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #a89875;
+  box-shadow: 0 0 0 3px rgba(168, 152, 117, 0.1);
+}
+
+body.dark-theme .form-input {
+  background: #353535;
+  border-color: #404040;
+  color: #e0e0e0;
+}
+
+body.dark-theme .form-input:focus {
+  border-color: #4a5568;
+  box-shadow: 0 0 0 3px rgba(74, 85, 104, 0.2);
+}
+
+.btn {
+  width: 100%;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-primary {
+  background: #a89875;
+  color: #ffffff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #8f7d5a;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-social {
+  background: #ffffff;
+  color: #333;
+  border: 1px solid #e8dcc3;
+}
+
+.btn-social:hover {
+  background: #f5f0e1;
+  border-color: #d4c7a8;
+}
+
+body.dark-theme .btn-social {
+  background: #353535;
+  color: #e0e0e0;
+  border-color: #404040;
+}
+
+body.dark-theme .btn-social:hover {
+  background: #404040;
+  border-color: #505050;
+}
+
+.btn-github {
+  margin-top: 16px;
+}
+
+.btn-github svg {
+  flex-shrink: 0;
+}
+
+.form-footer {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 14px;
+  color: #888;
+}
+
+body.dark-theme .form-footer {
+  color: #a0a0a0;
+}
+
+.form-footer a {
+  color: #a89875;
+  text-decoration: none;
+  margin-left: 4px;
+  transition: color 0.2s ease;
+}
+
+.form-footer a:hover {
+  color: #8f7d5a;
+  text-decoration: underline;
+}
+
+body.dark-theme .form-footer a {
+  color: #6b9bd1;
+}
+
+body.dark-theme .form-footer a:hover {
+  color: #5a8bc0;
+}
+
+.error-message {
+  background: #fee;
+  color: #c33;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  border: 1px solid #fcc;
+}
+
+body.dark-theme .error-message {
+  background: #3a2525;
+  color: #ff6b6b;
+  border-color: #4a2d2d;
+}
+
+.email-confirmation-message {
+  background: #fff9e6;
+  color: #856404;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  border: 1px solid #ffd700;
+  line-height: 1.6;
+}
+
+.email-confirmation-message p {
+  margin: 8px 0;
+}
+
+.email-confirmation-message a {
+  color: #007bff;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.email-confirmation-message a:hover {
+  color: #0056b3;
+}
+
+#resend-status {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: pre-line;
+  line-height: 1.6;
+}
+
+#qq-email-tip {
+  white-space: normal;
+}
+
+body.dark-theme .email-confirmation-message {
+  background: #3a3525;
+  color: #ffd700;
+  border-color: #ffd700;
+}
+
+body.dark-theme .email-confirmation-message a {
+  color: #4da6ff;
+}
+
+body.dark-theme .email-confirmation-message a:hover {
+  color: #66b3ff;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 24px 0;
+  color: #888;
+  font-size: 14px;
+}
+
+body.dark-theme .divider {
+  color: #a0a0a0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #e8dcc3;
+}
+
+body.dark-theme .divider::before,
+body.dark-theme .divider::after {
+  border-bottom-color: #404040;
+}
+
+.divider span {
+  padding: 0 16px;
+}
+
+.social-login {
+  margin-top: 0;
+}
+
+/* 退出登录按钮 */
+.btn-logout {
+  width: 100%;
+  padding: 10px 16px;
+  background: #dc3545;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+}
+
+.btn-logout:hover {
+  background: #c82333;
+}
+
+body.dark-theme .btn-logout {
+  background: #dc3545;
+}
+
+body.dark-theme .btn-logout:hover {
+  background: #c82333;
+}
+
+.user-info-item {
+  border-bottom: 1px solid #e8dcc3;
+  padding-bottom: 12px;
+  margin-bottom: 8px;
+}
+
+body.dark-theme .user-info-item {
+  border-bottom-color: #404040;
+}
+

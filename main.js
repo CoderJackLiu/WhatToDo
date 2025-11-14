@@ -2,6 +2,8 @@ const { app, BrowserWindow, ipcMain, Menu, Tray } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const authService = require('./auth-service');
+const dataService = require('./data-service');
 
 // 设置缓存目录到用户可写的位置，避免权限错误
 const userCacheDir = path.join(os.homedir(), '.electron-todolist-cache');
@@ -24,26 +26,18 @@ let mainWindow;
 let groupWindows = new Map(); // 存储所有分组窗口
 let tray;
 
-// 数据文件路径
-const dataDir = path.join(app.getPath('userData'), 'data');
-const groupsPath = path.join(dataDir, 'groups.json'); // 分组数据
-const settingsPath = path.join(dataDir, 'settings.json'); // 设置数据
+// 设置文件路径（保留本地设置）
+const settingsPath = path.join(app.getPath('userData'), 'settings.json');
 
-// 确保数据目录存在
-function ensureDataDir() {
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
-  if (!fs.existsSync(groupsPath)) {
-    fs.writeFileSync(groupsPath, JSON.stringify({ groups: [] }, null, 2));
-  }
+// 确保设置文件存在
+function ensureSettingsFile() {
   if (!fs.existsSync(settingsPath)) {
     fs.writeFileSync(settingsPath, JSON.stringify({ autoStart: false, themeMode: 'light' }, null, 2));
   }
 }
 
-// 创建主窗口（分组列表）
-function createWindow() {
+// 创建主窗口（分组列表或登录界面）
+function createWindow(initialFile = null) {
   const iconPath = path.join(__dirname, 'build', 'icon.ico');
   let windowIcon;
   
@@ -72,7 +66,13 @@ function createWindow() {
     }
   });
 
-  mainWindow.loadFile('groups.html');
+  // 根据认证状态加载不同页面
+  if (initialFile) {
+    mainWindow.loadFile(initialFile);
+  } else {
+    // 检查认证状态
+    checkAuthAndLoad();
+  }
 
   // 关闭窗口时最小化到托盘
   mainWindow.on('close', (event) => {
@@ -218,8 +218,98 @@ function createTray() {
   });
 }
 
+// 检查认证状态并加载相应页面
+async function checkAuthAndLoad() {
+  try {
+    const result = await authService.getSession();
+    if (result.success && result.session) {
+      // 已登录，加载主界面
+      mainWindow.loadFile('groups.html');
+    } else {
+      // 未登录，加载登录界面
+      mainWindow.loadFile('login.html');
+    }
+  } catch (error) {
+    console.error('检查认证状态失败:', error);
+    // 出错时加载登录界面
+    mainWindow.loadFile('login.html');
+  }
+}
+
+// 注册自定义协议（用于 OAuth 回调）
+const PROTOCOL = 'com.electron.todolist';
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+} else {
+  // 注册协议
+  if (process.defaultApp) {
+    if (process.argv.length >= 2) {
+      app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [path.resolve(process.argv[1])]);
+    }
+  } else {
+    app.setAsDefaultProtocolClient(PROTOCOL);
+  }
+
+  // 处理协议调用（Windows）
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    // 查找协议 URL
+    const url = commandLine.find(arg => arg.startsWith(`${PROTOCOL}://`));
+    if (url) {
+      handleProtocolUrl(url);
+    }
+    
+    // 聚焦窗口
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+
+  // 处理协议调用（macOS）
+  app.on('open-url', (event, url) => {
+    event.preventDefault();
+    handleProtocolUrl(url);
+  });
+}
+
+// 处理协议 URL（OAuth 回调和邮箱确认回调）
+function handleProtocolUrl(url) {
+  console.log('收到协议URL:', url);
+  
+  // 如果窗口还未创建，等待窗口创建完成
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    // 延迟处理，等待窗口创建
+    setTimeout(() => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('oauth-callback', url);
+      }
+    }, 1000);
+  } else {
+    mainWindow.webContents.send('oauth-callback', url);
+    
+    // 确保窗口可见
+    if (mainWindow.isMinimized()) {
+      mainWindow.restore();
+    }
+    mainWindow.focus();
+  }
+}
+
 // 应用准备就绪
 app.whenReady().then(() => {
+  // 检查启动参数中的协议URL（Windows首次启动时）
+  if (process.platform === 'win32' && process.argv.length >= 2) {
+    const protocolUrl = process.argv.find(arg => arg.startsWith(`${PROTOCOL}://`));
+    if (protocolUrl) {
+      // 延迟处理，等待窗口创建
+      setTimeout(() => {
+        handleProtocolUrl(protocolUrl);
+      }, 500);
+    }
+  }
+  
   // 确保缓存目录存在
   if (!fs.existsSync(userCacheDir)) {
     try {
@@ -229,7 +319,7 @@ app.whenReady().then(() => {
     }
   }
   
-  ensureDataDir();
+  ensureSettingsFile();
   
   // 加载设置并应用开机自启动
   try {
@@ -245,6 +335,29 @@ app.whenReady().then(() => {
   } catch (error) {
     console.error('Error loading auto start settings:', error);
   }
+  
+  // 监听认证状态变化
+  authService.onAuthStateChange((event, session) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('auth-state-changed', event, session);
+      
+      // 如果登出，跳转到登录页面
+      if (event === 'SIGNED_OUT') {
+        mainWindow.loadFile('login.html');
+      }
+      // 如果登录，跳转到主页面
+      else if (event === 'SIGNED_IN' && session) {
+        mainWindow.loadFile('groups.html');
+      }
+    }
+  });
+  
+  // 监听数据变化（实时同步）
+  dataService.subscribeToGroups((payload) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('data-groups-changed', payload);
+    }
+  });
   
   createWindow();
   createTray();
@@ -268,28 +381,91 @@ app.on('before-quit', () => {
   app.isQuitting = true;
 });
 
-// IPC 通信处理
+// ========== IPC 通信处理 ==========
 
-// 加载所有分组
-ipcMain.handle('load-groups', async () => {
-  try {
-    const data = fs.readFileSync(groupsPath, 'utf-8');
-    return JSON.parse(data);
-  } catch (error) {
-    console.error('Error loading groups:', error);
-    return { groups: [] };
-  }
+// ========== 认证相关 IPC ==========
+ipcMain.handle('auth-sign-up', async (event, email, password) => {
+  return await authService.signUp(email, password);
 });
 
-// 保存所有分组
-ipcMain.handle('save-groups', async (event, data) => {
-  try {
-    fs.writeFileSync(groupsPath, JSON.stringify(data, null, 2));
-    return { success: true };
-  } catch (error) {
-    console.error('Error saving groups:', error);
-    return { success: false, error: error.message };
-  }
+ipcMain.handle('auth-sign-in', async (event, email, password) => {
+  return await authService.signIn(email, password);
+});
+
+ipcMain.handle('auth-resend-confirmation', async (event, email) => {
+  return await authService.resendConfirmationEmail(email);
+});
+
+ipcMain.handle('auth-sign-in-github', async () => {
+  return await authService.signInWithGitHub();
+});
+
+ipcMain.handle('auth-sign-out', async () => {
+  return await authService.signOut();
+});
+
+ipcMain.handle('auth-get-current-user', async () => {
+  return await authService.getCurrentUser();
+});
+
+ipcMain.handle('auth-get-session', async () => {
+  return await authService.getSession();
+});
+
+ipcMain.handle('auth-handle-oauth-callback', async (event, url) => {
+  return await authService.handleOAuthCallback(url);
+});
+
+// ========== 数据操作相关 IPC ==========
+ipcMain.handle('data-load-groups', async () => {
+  return await dataService.loadGroups();
+});
+
+ipcMain.handle('data-create-group', async (event, name, theme) => {
+  return await dataService.createGroup(name, theme);
+});
+
+ipcMain.handle('data-update-group', async (event, id, updates) => {
+  return await dataService.updateGroup(id, updates);
+});
+
+ipcMain.handle('data-delete-group', async (event, id) => {
+  return await dataService.deleteGroup(id);
+});
+
+ipcMain.handle('data-reorder-groups', async (event, groupIds) => {
+  return await dataService.reorderGroups(groupIds);
+});
+
+ipcMain.handle('data-load-todos', async (event, groupId) => {
+  return await dataService.loadTodos(groupId);
+});
+
+ipcMain.handle('data-create-todo', async (event, groupId, text) => {
+  return await dataService.createTodo(groupId, text);
+});
+
+ipcMain.handle('data-update-todo', async (event, id, updates) => {
+  return await dataService.updateTodo(id, updates);
+});
+
+ipcMain.handle('data-delete-todo', async (event, id) => {
+  return await dataService.deleteTodo(id);
+});
+
+ipcMain.handle('data-delete-todos', async (event, ids) => {
+  return await dataService.deleteTodos(ids);
+});
+
+ipcMain.handle('data-reorder-todos', async (event, groupId, todoIds) => {
+  return await dataService.reorderTodos(groupId, todoIds);
+});
+
+// 订阅待办变化
+ipcMain.on('subscribe-todos', (event, groupId) => {
+  dataService.subscribeToTodos(groupId, (payload) => {
+    event.sender.send(`data-todos-changed-${groupId}`, payload);
+  });
 });
 
 // 打开分组窗口
@@ -346,7 +522,7 @@ ipcMain.handle('get-user-data-path', () => {
   return app.getPath('userData');
 });
 
-// 加载设置
+// ========== 设置管理（保留本地设置） ==========
 ipcMain.handle('load-settings', async () => {
   try {
     if (fs.existsSync(settingsPath)) {

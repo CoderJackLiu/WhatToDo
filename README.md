@@ -39,11 +39,40 @@ npm run build
 - **编辑** - 双击文本内容进行编辑
 - **删除分组** - 点击"管理模式"按钮后删除
 
+## ⚙️ Supabase 配置
+
+**重要**：为了邮箱确认功能正常工作，需要在 Supabase Dashboard 中配置：
+
+### 1. 配置重定向 URL
+
+1. 登录 Supabase Dashboard
+2. 进入 **Authentication** > **URL Configuration**
+3. 在 "Redirect URLs" 中添加：`com.electron.todolist://auth/callback`
+4. 保存配置
+
+### 2. 邮件服务配置
+
+**注意**：Supabase 默认的 SMTP 服务器主要用于测试，有以下限制：
+- 有严格的发送频率限制（每小时少量邮件）
+- 可能无法发送到某些邮箱服务商
+- 邮件可能被标记为垃圾邮件
+
+**建议**：
+- 开发/测试环境：使用默认 SMTP，检查垃圾邮件文件夹
+- 生产环境：配置自定义 SMTP 服务器（在 Authentication > Email Templates 中配置）
+
+如果收不到邮件：
+1. 检查垃圾邮件文件夹
+2. 等待几分钟后重试（避免频率限制）
+3. 尝试使用其他邮箱地址
+4. 检查 Supabase Dashboard 的邮件发送日志
+
 ## 🛠️ 技术栈
 
 - Electron 27.0.0
 - HTML5 / CSS3 / JavaScript
 - Node.js
+- Supabase (认证和数据同步)
 
 ## 📜 许可证
 

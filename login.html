@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 - TodoList</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="light-theme">
+  <div class="login-container">
+    <div class="login-box">
+      <div class="login-header">
+        <h1>📝 TodoList</h1>
+        <p class="login-subtitle">登录以同步您的数据</p>
+      </div>
+
+      <!-- 错误提示 -->
+      <div class="error-message" id="error-message" style="display: none;"></div>
+      
+      <!-- 邮箱未确认提示 -->
+      <div class="email-confirmation-message" id="email-confirmation-message" style="display: none;">
+        <p><strong>您的邮箱尚未确认</strong></p>
+        <p>请检查您的邮箱（包括<strong>垃圾邮件/垃圾箱</strong>文件夹）并点击确认链接。</p>
+        <p id="qq-email-tip" style="display: none; color: #856404; font-weight: 500; margin-top: 8px;">
+          ⚠️ QQ 邮箱用户请注意：邮件可能被标记为垃圾邮件，请务必检查"垃圾箱"文件夹！
+        </p>
+        <p style="margin-top: 12px;">没有收到邮件？<a href="#" id="resend-confirmation-link">重新发送确认邮件</a></p>
+        <p id="resend-status" style="display: none; margin-top: 10px;"></p>
+      </div>
+
+      <!-- 登录表单 -->
+      <div class="login-form" id="login-form">
+        <div class="form-group">
+          <input 
+            type="email" 
+            id="login-email" 
+            class="form-input" 
+            placeholder="邮箱地址"
+            autocomplete="email"
+          >
+        </div>
+        <div class="form-group">
+          <input 
+            type="password" 
+            id="login-password" 
+            class="form-input" 
+            placeholder="密码"
+            autocomplete="current-password"
+          >
+        </div>
+        <button class="btn btn-primary" id="login-btn">
+          <span class="btn-text">登录</span>
+          <span class="btn-loading" style="display: none;">登录中...</span>
+        </button>
+        <div class="form-footer">
+          <span>还没有账号？</span>
+          <a href="#" id="switch-to-register">立即注册</a>
+        </div>
+      </div>
+
+      <!-- 注册表单 -->
+      <div class="login-form" id="register-form" style="display: none;">
+        <div class="form-group">
+          <input 
+            type="email" 
+            id="register-email" 
+            class="form-input" 
+            placeholder="邮箱地址"
+            autocomplete="email"
+          >
+        </div>
+        <div class="form-group">
+          <input 
+            type="password" 
+            id="register-password" 
+            class="form-input" 
+            placeholder="密码（至少6位）"
+            autocomplete="new-password"
+          >
+        </div>
+        <div class="form-group">
+          <input 
+            type="password" 
+            id="register-password-confirm" 
+            class="form-input" 
+            placeholder="确认密码"
+            autocomplete="new-password"
+          >
+        </div>
+        <button class="btn btn-primary" id="register-btn">
+          <span class="btn-text">注册</span>
+          <span class="btn-loading" style="display: none;">注册中...</span>
+        </button>
+        <div class="form-footer">
+          <span>已有账号？</span>
+          <a href="#" id="switch-to-login">立即登录</a>
+        </div>
+      </div>
+
+      <!-- 分隔线 -->
+      <div class="divider">
+        <span>或</span>
+      </div>
+
+      <!-- 社交登录 -->
+      <div class="social-login">
+        <button class="btn btn-social btn-github" id="github-login-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+          </svg>
+          <span>使用 GitHub 登录</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="login.js"></script>
+</body>
+</html>
+

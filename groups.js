@@ -9,13 +9,18 @@ const settingsMenu = document.getElementById('settings-menu');
 const autoStartToggle = document.getElementById('auto-start-toggle');
 const themeLightBtn = document.getElementById('theme-light-btn');
 const themeDarkBtn = document.getElementById('theme-dark-btn');
+const logoutBtn = document.getElementById('logout-btn');
+const userEmail = document.getElementById('user-email');
 
 // 状态
 let groups = [];
 let previousGroups = []; // 保存上一次的分组数据，用于增量更新
+let isLoading = false;
+let groupsSubscription = null;
 
 // 初始化应用
 async function init() {
+  await loadUserInfo();
   await loadGroups();
   await loadSettings();
   bindEvents();
@@ -26,31 +31,82 @@ async function init() {
     document.body.classList.add('light-theme');
   }
   
-  // 监听分组数据变化
-  window.electronAPI.onGroupsChanged(async () => {
-    await loadGroups();
-    updateGroups(); // 使用增量更新而不是完全重新渲染
+  // 订阅分组数据变化（实时同步）
+  subscribeToGroups();
+  
+  // 监听认证状态变化
+  window.electronAPI.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_OUT') {
+      // 登出后跳转到登录页面
+      window.location.href = 'login.html';
+    }
   });
 }
 
-// 加载分组数据
-async function loadGroups() {
+// 加载用户信息
+async function loadUserInfo() {
   try {
-    const data = await window.electronAPI.loadGroups();
-    groups = data.groups || [];
+    const result = await window.electronAPI.auth.getCurrentUser();
+    if (result.success && result.user) {
+      const email = result.user.email || result.user.user_metadata?.email || '未知用户';
+      userEmail.textContent = email;
+    } else {
+      userEmail.textContent = '未登录';
+    }
   } catch (error) {
-    console.error('加载分组失败:', error);
-    groups = [];
+    console.error('加载用户信息失败:', error);
+    userEmail.textContent = '加载失败';
   }
 }
 
-// 保存分组数据
-async function saveGroups() {
+// 加载分组数据（从云端）
+async function loadGroups() {
+  if (isLoading) return;
+  
+  isLoading = true;
   try {
-    await window.electronAPI.saveGroups({ groups });
+    const result = await window.electronAPI.data.loadGroups();
+    if (result.success) {
+      // 转换数据格式：将云端数据转换为本地格式
+      groups = result.data.map(g => ({
+        id: g.id,
+        name: g.name || '',
+        theme: g.theme || 'default',
+        todos: [], // 待办事项在分组详情页面加载
+        createdAt: new Date(g.created_at).getTime(),
+        updatedAt: new Date(g.updated_at).getTime()
+      }));
+    } else {
+      console.error('加载分组失败:', result.error);
+      groups = [];
+    }
   } catch (error) {
-    console.error('保存分组失败:', error);
+    console.error('加载分组失败:', error);
+    groups = [];
+  } finally {
+    isLoading = false;
   }
+}
+
+// 订阅分组变化（实时同步）
+function subscribeToGroups() {
+  if (groupsSubscription) {
+    return; // 已经订阅
+  }
+  
+  groupsSubscription = window.electronAPI.data.subscribeToGroups((payload) => {
+    // 处理实时更新
+    if (payload.eventType === 'INSERT') {
+      // 新增分组
+      loadGroups().then(() => updateGroups());
+    } else if (payload.eventType === 'UPDATE') {
+      // 更新分组
+      loadGroups().then(() => updateGroups());
+    } else if (payload.eventType === 'DELETE') {
+      // 删除分组
+      loadGroups().then(() => updateGroups());
+    }
+  });
 }
 
 // 绑定事件
@@ -79,6 +135,23 @@ function bindEvents() {
     window.electronAPI.setAutoStart(enabled);
   });
   
+  // 退出登录
+  logoutBtn.addEventListener('click', async () => {
+    if (confirm('确定要退出登录吗？')) {
+      try {
+        const result = await window.electronAPI.auth.signOut();
+        if (result.success) {
+          window.location.href = 'login.html';
+        } else {
+          alert('退出登录失败：' + (result.error || '未知错误'));
+        }
+      } catch (error) {
+        console.error('退出登录失败:', error);
+        alert('退出登录失败：' + error.message);
+      }
+    }
+  });
+  
   // 点击外部关闭设置菜单
   document.addEventListener('click', (e) => {
     if (!settingsMenu.contains(e.target) && !settingsBtn.contains(e.target)) {
@@ -101,41 +174,54 @@ function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
-// 添加分组
-function addGroup() {
-  const newGroup = {
-    id: generateId(),
-    name: '', // 不再需要名称
-    todos: [],
-    createdAt: Date.now(),
-    updatedAt: Date.now()
-  };
-  
-  groups.unshift(newGroup);
-  
-  saveGroups();
-  updateGroups(); // 使用增量更新
-  
-  // 自动打开新创建的分组
-  openGroup(newGroup.id, '');
+// 添加分组（云端）
+async function addGroup() {
+  try {
+    const result = await window.electronAPI.data.createGroup('', 'default');
+    if (result.success) {
+      // 重新加载分组列表
+      await loadGroups();
+      updateGroups();
+      
+      // 自动打开新创建的分组
+      openGroup(result.data.id, '');
+    } else {
+      alert('创建分组失败：' + (result.error || '未知错误'));
+    }
+  } catch (error) {
+    console.error('创建分组失败:', error);
+    alert('创建分组失败：' + error.message);
+  }
 }
 
-// 删除分组
-function deleteGroup(id) {
+// 删除分组（云端）
+async function deleteGroup(id) {
   if (!confirm('确定要删除这个分组吗？分组内的所有待办事项也会被删除。')) {
     return;
   }
   
-  const index = groups.findIndex(g => g.id === id);
-  if (index !== -1) {
-    const item = document.querySelector(`[data-group-id="${id}"]`);
+  const item = document.querySelector(`[data-group-id="${id}"]`);
+  if (item) {
+    item.classList.add('removing');
+  }
+  
+  try {
+    const result = await window.electronAPI.data.deleteGroup(id);
+    if (result.success) {
+      // 重新加载分组列表
+      await loadGroups();
+      updateGroups();
+    } else {
+      alert('删除分组失败：' + (result.error || '未知错误'));
+      if (item) {
+        item.classList.remove('removing');
+      }
+    }
+  } catch (error) {
+    console.error('删除分组失败:', error);
+    alert('删除分组失败：' + error.message);
     if (item) {
-      item.classList.add('removing');
-      setTimeout(() => {
-        groups.splice(index, 1);
-        saveGroups();
-        updateGroups(); // 使用增量更新
-      }, 300);
+      item.classList.remove('removing');
     }
   }
 }
@@ -196,22 +282,19 @@ function createGroupItem(group) {
   const themeColor = themeColors[theme] || themeColors.default;
   li.style.borderTopColor = themeColor.border;
   
-  // 分组内容预览
+  // 分组内容预览（待办事项在详情页面加载，这里显示占位文本）
   const content = document.createElement('div');
   content.className = 'group-content';
-  const todos = group.todos || [];
-  content.textContent = getGroupPreviewText(todos);
+  content.textContent = '点击查看待办事项';
   
   // 右侧内容容器
   const rightContent = document.createElement('div');
   rightContent.className = 'group-right-content';
   
-  // 待办数量徽章
+  // 待办数量徽章（暂时不显示，因为待办在详情页面加载）
   const count = document.createElement('span');
   count.className = 'group-count-badge';
-  const totalCount = todos.length;
-  const completedCount = todos.filter(t => t.completed).length;
-  count.textContent = totalCount > 0 ? `${completedCount}/${totalCount}` : '0';
+  count.textContent = '0';
   
   // 删除按钮（悬停时显示）
   const deleteBtn = document.createElement('button');
@@ -246,25 +329,12 @@ function createGroupItem(group) {
 
 // 更新单个分组项的内容
 function updateGroupItem(li, group) {
-  const content = li.querySelector('.group-content');
-  const count = li.querySelector('.group-count-badge');
-  
-  if (content) {
-    const todos = group.todos || [];
-    content.textContent = getGroupPreviewText(todos);
-  }
-  
-  if (count) {
-    const todos = group.todos || [];
-    const totalCount = todos.length;
-    const completedCount = todos.filter(t => t.completed).length;
-    count.textContent = totalCount > 0 ? `${completedCount}/${totalCount}` : '0';
-  }
-  
   // 更新主题颜色边框
   const theme = group.theme || 'default';
   const themeColor = themeColors[theme] || themeColors.default;
   li.style.borderTopColor = themeColor.border;
+  
+  // 注意：待办事项预览和数量在详情页面加载，这里不更新
 }
 
 // 检查分组是否有变化
@@ -276,25 +346,12 @@ function hasGroupChanged(oldGroup, newGroup) {
     return true;
   }
   
-  // 比较待办事项数量
-  const oldTodos = oldGroup.todos || [];
-  const newTodos = newGroup.todos || [];
-  
-  if (oldTodos.length !== newTodos.length) return true;
-  
-  // 比较每个待办事项
-  for (let i = 0; i < newTodos.length; i++) {
-    const oldTodo = oldTodos[i];
-    const newTodo = newTodos[i];
-    
-    if (!oldTodo || 
-        oldTodo.id !== newTodo.id || 
-        oldTodo.text !== newTodo.text || 
-        oldTodo.completed !== newTodo.completed) {
-      return true;
-    }
+  // 检查 ID 是否变化（分组被删除或新增）
+  if (oldGroup.id !== newGroup.id) {
+    return true;
   }
   
+  // 注意：待办事项在详情页面加载，这里不比较
   return false;
 }
 
@@ -449,19 +506,29 @@ function handleDragOver(e) {
   }
 }
 
-function handleDrop(e) {
+async function handleDrop(e) {
   e.stopPropagation();
   e.preventDefault();
   
   // 更新数据顺序
   const items = Array.from(groupList.querySelectorAll('.group-item'));
-  const newGroups = items.map(item => {
-    const groupId = item.getAttribute('data-group-id');
-    return groups.find(g => g.id === groupId);
-  }).filter(g => g);
+  const newGroupIds = items.map(item => {
+    return item.getAttribute('data-group-id');
+  }).filter(id => id);
   
-  groups = newGroups;
-  saveGroups();
+  // 更新云端数据顺序
+  try {
+    const result = await window.electronAPI.data.reorderGroups(newGroupIds);
+    if (result.success) {
+      // 重新加载分组列表
+      await loadGroups();
+      updateGroups();
+    } else {
+      console.error('重新排序失败:', result.error);
+    }
+  } catch (error) {
+    console.error('重新排序失败:', error);
+  }
 }
 
 function handleDragEnd(e) {
@@ -561,4 +628,5 @@ function hideSettingsMenu() {
 
 // 启动应用
 init();
+
 
