@@ -170,7 +170,7 @@ jobs:
                     repo: repoName,
                     tag_name: releaseTag,
                     name: releaseName,
-                    body: `自动构建产物 - 版本 ${version}\n\n提交: ${commitSha}\n分支: ${branch}\n\n这是自动构建的预发布版本，用于提供下载链接。`,
+                    body: `Auto-built artifact - Version ${version}\n\nCommit: ${commitSha}\nBranch: ${branch}\n\nThis is an auto-built pre-release version for providing download links.`,
                     draft: false,
                     prerelease: true
                   });
@@ -224,34 +224,36 @@ jobs:
               // Update packages/README.md using GitHub API
               const readmePath = 'packages/README.md';
               const downloadUrl = asset.browser_download_url;
-              const readmeContent = `# 构建产物下载
-
-## 最新构建
-
-- **版本**: ${version}
-- **提交**: [${shortSha}](https://github.com/${repo}/commit/${commitSha})
-- **分支**: ${branch}
-- **构建时间**: ${new Date().toISOString()}
-
-### 下载链接
-
-- [${packageName}](${downloadUrl})
-
----
-
-## 说明
-
-此目录包含自动构建的产物。每次 push 提交时，会自动构建并上传最新的安装包。
-
-### 如何下载
-
-1. 点击上方的下载链接
-2. 下载完成后，双击运行安装程序
-
-### 历史版本
-
-历史版本可以在 [GitHub Releases](https://github.com/${repo}/releases) 页面查看。
-`;
+              const readmeLines = [
+                '# Build Artifacts Download',
+                '',
+                '## Latest Build',
+                '',
+                '- **Version**: ' + version,
+                '- **Commit**: [' + shortSha + '](https://github.com/' + repo + '/commit/' + commitSha + ')',
+                '- **Branch**: ' + branch,
+                '- **Build Time**: ' + new Date().toISOString(),
+                '',
+                '### Download Link',
+                '',
+                '- [' + packageName + '](' + downloadUrl + ')',
+                '',
+                '---',
+                '',
+                '## Description',
+                '',
+                'This directory contains auto-built artifacts. Each push will automatically build and upload the latest installer.',
+                '',
+                '### How to Download',
+                '',
+                '1. Click the download link above',
+                '2. After downloading, double-click to run the installer',
+                '',
+                '### Previous Versions',
+                '',
+                'Previous versions can be viewed on the [GitHub Releases](https://github.com/' + repo + '/releases) page.'
+              ];
+              const readmeContent = readmeLines.join('\n');
               
               const readmeContentBase64 = Buffer.from(readmeContent, 'utf8').toString('base64');
               
@@ -283,7 +285,7 @@ jobs:
                   owner: owner,
                   repo: repoName,
                   path: readmePath,
-                  message: `docs: 更新 packages 目录下载链接 [skip ci]`,
+                  message: `docs: Update packages directory download link [skip ci]`,
                   content: readmeContentBase64,
                   branch: branch
                 };
@@ -477,15 +479,15 @@ jobs:
                 const item = `- ${message} ([${sha}](${url})) - ${author}`;
                 
                 const lowerMessage = message.toLowerCase();
-                if (lowerMessage.startsWith('feat') || lowerMessage.startsWith('feature') || lowerMessage.includes('新功能') || lowerMessage.includes('添加')) {
+                if (lowerMessage.startsWith('feat') || lowerMessage.startsWith('feature') || lowerMessage.includes('add') || lowerMessage.includes('new')) {
                   features.push(item);
-                } else if (lowerMessage.startsWith('fix') || lowerMessage.startsWith('bugfix') || lowerMessage.includes('修复')) {
+                } else if (lowerMessage.startsWith('fix') || lowerMessage.startsWith('bugfix') || lowerMessage.includes('bug')) {
                   fixes.push(item);
-                } else if (lowerMessage.startsWith('docs') || lowerMessage.includes('文档')) {
+                } else if (lowerMessage.startsWith('docs') || lowerMessage.includes('documentation')) {
                   docs.push(item);
-                } else if (lowerMessage.startsWith('refactor') || lowerMessage.includes('重构')) {
+                } else if (lowerMessage.startsWith('refactor')) {
                   refactor.push(item);
-                } else if (lowerMessage.startsWith('chore') || lowerMessage.startsWith('ci') || lowerMessage.includes('构建')) {
+                } else if (lowerMessage.startsWith('chore') || lowerMessage.startsWith('ci') || lowerMessage.includes('build')) {
                   chore.push(item);
                 } else {
                   others.push(item);
