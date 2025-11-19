@@ -51,18 +51,6 @@ npm run build
 - **Edit** - Double-click text to edit
 - **Delete Group** - Click "Manage Mode" button to delete
 
-## ⚙️ Configuration
-
-### Supabase Setup
-
-This app uses Supabase for authentication and data synchronization. You need to configure:
-
-1. **Redirect URL** - Add `com.electron.todolist://auth/callback` to Supabase Dashboard
-2. **GitHub OAuth** (Optional) - Configure GitHub OAuth in Supabase if you want GitHub login
-3. **Email Service** - Configure SMTP settings for email verification
-
-For detailed configuration steps, see [docs/DOMAIN_DNS_SETUP.md](./docs/DOMAIN_DNS_SETUP.md).
-
 ## 🛠️ Tech Stack
 
 - Electron 27.0.0
