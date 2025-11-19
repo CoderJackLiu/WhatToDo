@@ -1485,6 +1485,36 @@ body.dark-theme .email-confirmation-message a:hover {
   color: #66b3ff;
 }
 
+/* Session 过期提示 */
+.session-expired-message {
+  background: #fff3cd;
+  color: #856404;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  border: 1px solid #ffc107;
+  line-height: 1.5;
+}
+
+.session-expired-message p {
+  margin: 5px 0;
+}
+
+.session-expired-message p:first-child {
+  margin-top: 0;
+}
+
+.session-expired-message p:last-child {
+  margin-bottom: 0;
+}
+
+body.dark-theme .session-expired-message {
+  background: #3e2e1f;
+  color: #ffc107;
+  border-color: #ffc107;
+}
+
 .divider {
   display: flex;
   align-items: center;

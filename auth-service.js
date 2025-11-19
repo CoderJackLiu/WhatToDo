@@ -1,4 +1,5 @@
 const { supabase } = require('./supabase-config');
+const sessionService = require('./session-service');
 
 class AuthService {
   constructor() {
@@ -75,6 +76,15 @@ class AuthService {
         }
         throw error;
       }
+      
+      // 登录成功后保存 session
+      if (data.session) {
+        const saveResult = sessionService.saveSession(data.session);
+        if (!saveResult.success) {
+          console.warn('保存 session 失败:', saveResult.error);
+        }
+      }
+      
       return { success: true, data };
     } catch (error) {
         console.error('Sign in failed:', error);
@@ -151,6 +161,10 @@ class AuthService {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      
+      // 清除本地保存的 session
+      sessionService.clearSession();
+      
       return { success: true };
     } catch (error) {
         console.error('Sign out failed:', error);
@@ -183,9 +197,86 @@ class AuthService {
   // 监听认证状态变化
   onAuthStateChange(callback) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // 当登录成功时自动保存 session
+      if (event === 'SIGNED_IN' && session) {
+        const saveResult = sessionService.saveSession(session);
+        if (!saveResult.success) {
+          console.warn('自动保存 session 失败:', saveResult.error);
+        }
+      }
+      // 当登出时清除 session
+      if (event === 'SIGNED_OUT') {
+        sessionService.clearSession();
+      }
+      
       callback(event, session);
     });
     return subscription;
+  }
+
+  // 恢复 session（从加密文件恢复）
+  async restoreSession() {
+    try {
+      // 检查 session 是否有效
+      const validation = sessionService.isSessionValid();
+      if (!validation.valid) {
+        return { 
+          success: false, 
+          restored: false, 
+          reason: validation.reason,
+          expiresAt: validation.expiresAt 
+        };
+      }
+
+      // 获取保存的 session
+      const sessionResult = sessionService.getSession();
+      if (!sessionResult.success || !sessionResult.session) {
+        return { 
+          success: false, 
+          restored: false, 
+          reason: 'Session 文件不存在或已损坏' 
+        };
+      }
+
+      const savedSession = sessionResult.session;
+
+      // 尝试恢复 session 到 Supabase
+      const { data, error } = await supabase.auth.setSession({
+        access_token: savedSession.access_token,
+        refresh_token: savedSession.refresh_token
+      });
+
+      if (error) {
+        console.error('恢复 session 失败:', error);
+        // 如果恢复失败，清除无效的 session
+        sessionService.clearSession();
+        return { 
+          success: false, 
+          restored: false, 
+          reason: 'Session 已失效，请重新登录',
+          error: error.message 
+        };
+      }
+
+      // 恢复成功，更新保存的 session（使用最新的 session 数据）
+      if (data.session) {
+        sessionService.saveSession(data.session);
+      }
+
+      return { 
+        success: true, 
+        restored: true, 
+        session: data.session,
+        expiresAt: sessionResult.expiresAt 
+      };
+    } catch (error) {
+      console.error('恢复 session 异常:', error);
+      return { 
+        success: false, 
+        restored: false, 
+        reason: error.message 
+      };
+    }
   }
 
   // 处理 OAuth 回调和邮箱确认回调
@@ -229,6 +320,15 @@ class AuthService {
           });
           
           if (error) throw error;
+          
+          // 保存 session
+          if (data.session) {
+            const saveResult = sessionService.saveSession(data.session);
+            if (!saveResult.success) {
+              console.warn('保存 session 失败:', saveResult.error);
+            }
+          }
+          
           return { success: true, data, type: type === 'signup' ? 'email_confirmation' : 'oauth' };
         }
       }
@@ -251,6 +351,15 @@ class AuthService {
           });
           
           if (verifyResult.error) throw verifyResult.error;
+          
+          // 保存 session
+          if (verifyResult.data.session) {
+            const saveResult = sessionService.saveSession(verifyResult.data.session);
+            if (!saveResult.success) {
+              console.warn('保存 session 失败:', saveResult.error);
+            }
+          }
+          
           return { success: true, data: verifyResult.data, type: 'email_confirmation' };
         } catch (verifyError) {
           console.warn('verifyOtp failed, trying alternative method:', verifyError);
@@ -266,6 +375,15 @@ class AuthService {
         });
         
         if (error) throw error;
+        
+        // 保存 session
+        if (data.session) {
+          const saveResult = sessionService.saveSession(data.session);
+          if (!saveResult.success) {
+            console.warn('保存 session 失败:', saveResult.error);
+          }
+        }
+        
         return { success: true, data, type: type === 'signup' ? 'email_confirmation' : 'oauth' };
       }
       

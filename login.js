@@ -2,6 +2,7 @@
 const loginForm = document.getElementById('login-form');
 const registerForm = document.getElementById('register-form');
 const errorMessage = document.getElementById('error-message');
+const sessionExpiredMessage = document.getElementById('session-expired-message');
 const emailConfirmationMessage = document.getElementById('email-confirmation-message');
 const resendConfirmationLink = document.getElementById('resend-confirmation-link');
 const resendStatus = document.getElementById('resend-status');
@@ -26,6 +27,33 @@ function init() {
   bindEvents();
   checkOAuthCallback();
   loadThemeMode();
+  listenForSessionExpired();
+}
+
+// 监听 session 过期事件
+function listenForSessionExpired() {
+  if (window.electronAPI && window.electronAPI.onSessionExpired) {
+    window.electronAPI.onSessionExpired((data) => {
+      showSessionExpired(data);
+    });
+  }
+}
+
+// 显示 session 过期提示
+function showSessionExpired(data) {
+  if (sessionExpiredMessage) {
+    sessionExpiredMessage.style.display = 'block';
+    // 隐藏其他提示
+    if (errorMessage) errorMessage.style.display = 'none';
+    if (emailConfirmationMessage) emailConfirmationMessage.style.display = 'none';
+  }
+}
+
+// 隐藏 session 过期提示
+function hideSessionExpired() {
+  if (sessionExpiredMessage) {
+    sessionExpiredMessage.style.display = 'none';
+  }
 }
 
 // 绑定事件
@@ -193,6 +221,7 @@ async function handleLogin() {
   }
 
   hideError();
+  hideSessionExpired();
   setLoading(loginBtn, true);
 
   try {

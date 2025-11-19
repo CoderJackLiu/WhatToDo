@@ -46,6 +46,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onOAuthCallback: (callback) => {
       ipcRenderer.on('oauth-callback', (event, url) => callback(url));
       return () => ipcRenderer.removeAllListeners('oauth-callback');
+    },
+    onSessionExpired: (callback) => {
+      ipcRenderer.on('session-expired', (event, data) => callback(data));
+      return () => ipcRenderer.removeAllListeners('session-expired');
     }
   },
 

@@ -308,12 +308,37 @@ function createTray() {
 // 检查认证状态并加载相应页面
 async function checkAuthAndLoad() {
   try {
+    // 首先尝试恢复保存的 session
+    const restoreResult = await authService.restoreSession();
+    
+    if (restoreResult.success && restoreResult.restored) {
+      // Session 恢复成功，加载主界面
+      debugLog('[main] Session 恢复成功，加载主界面');
+      mainWindow.loadFile('groups.html');
+      return;
+    }
+    
+    // Session 恢复失败，检查原因
+    if (restoreResult.reason && restoreResult.reason.includes('过期')) {
+      debugLog('[main] Session 已过期，显示过期提示');
+      // 设置过期标志，登录页面会显示提示
+      mainWindow.webContents.once('did-finish-load', () => {
+        mainWindow.webContents.send('session-expired', {
+          reason: restoreResult.reason,
+          expiresAt: restoreResult.expiresAt
+        });
+      });
+    }
+    
+    // 如果恢复失败，检查当前 Supabase session
     const result = await authService.getSession();
     if (result.success && result.session) {
       // 已登录，加载主界面
+      debugLog('[main] 当前有有效 session，加载主界面');
       mainWindow.loadFile('groups.html');
     } else {
       // 未登录，加载登录界面
+      debugLog('[main] 未登录，加载登录界面');
       mainWindow.loadFile('login.html');
       // 调整登录窗口大小
       setTimeout(() => {
