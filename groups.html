@@ -13,18 +13,18 @@
       <span class="titlebar-title">TodoList</span>
     </div>
     <div class="titlebar-controls">
-      <button class="titlebar-button settings" id="settings-btn" title="设置">
+      <button class="titlebar-button settings" id="settings-btn" data-i18n-title="settings" title="设置">
         <svg width="12" height="12" viewBox="0 0 12 12">
           <circle cx="6" cy="6" r="1.5" fill="currentColor"/>
           <path d="M6 2 L6 3.5 M6 8.5 L6 10 M2 6 L3.5 6 M8.5 6 L10 6" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/>
         </svg>
       </button>
-      <button class="titlebar-button minimize" id="minimize-btn" title="最小化">
+      <button class="titlebar-button minimize" id="minimize-btn" data-i18n-title="minimize" title="最小化">
         <svg width="12" height="12" viewBox="0 0 12 12">
           <rect x="0" y="5" width="12" height="2" fill="currentColor"/>
         </svg>
       </button>
-      <button class="titlebar-button close" id="close-btn" title="关闭">
+      <button class="titlebar-button close" id="close-btn" data-i18n-title="close" title="关闭">
         <svg width="12" height="12" viewBox="0 0 12 12">
           <path d="M1 1 L11 11 M11 1 L1 11" stroke="currentColor" stroke-width="2" fill="none"/>
         </svg>
@@ -34,7 +34,7 @@
 
   <!-- 设置菜单 -->
   <div class="settings-menu" id="settings-menu">
-    <div class="settings-menu-header">设置</div>
+    <div class="settings-menu-header" data-i18n="settings.title">设置</div>
     <div class="settings-content">
       <!-- 用户信息 -->
       <div class="settings-item user-info-item">
@@ -44,22 +44,37 @@
       </div>
       <div class="settings-item">
         <div class="settings-item-label">
-          <span>主题模式</span>
+          <span data-i18n="settings.themeMode">主题模式</span>
         </div>
         <div class="theme-mode-selector">
           <button class="theme-mode-btn active" data-theme="light" id="theme-light-btn">
             <span>☀️</span>
-            <span>浅色</span>
+            <span data-i18n="settings.themeLight">浅色</span>
           </button>
           <button class="theme-mode-btn" data-theme="dark" id="theme-dark-btn">
             <span>🌙</span>
-            <span>深色</span>
+            <span data-i18n="settings.themeDark">深色</span>
           </button>
         </div>
       </div>
       <div class="settings-item">
         <div class="settings-item-label">
-          <span>随系统启动</span>
+          <span data-i18n="settings.language">语言</span>
+          <span class="settings-item-desc" data-i18n="settings.languageDesc">选择界面显示语言</span>
+        </div>
+        <div class="language-selector">
+          <button class="language-btn active" data-lang="zh-CN" id="lang-zh-btn">
+            <span>中文</span>
+          </button>
+          <button class="language-btn" data-lang="en-US" id="lang-en-btn">
+            <span>English</span>
+          </button>
+        </div>
+      </div>
+      <div class="settings-item">
+        <div class="settings-item-label">
+          <span data-i18n="settings.autoStart">随系统启动</span>
+          <span class="settings-item-desc" data-i18n="settings.autoStartDesc">应用将在系统启动时自动运行</span>
         </div>
         <label class="toggle-switch">
           <input type="checkbox" id="auto-start-toggle">
@@ -67,7 +82,7 @@
         </label>
       </div>
       <div class="settings-item">
-        <button class="btn-logout" id="logout-btn">退出登录</button>
+        <button class="btn-logout" id="logout-btn" data-i18n="settings.logout">退出登录</button>
       </div>
     </div>
   </div>
@@ -83,11 +98,11 @@
 
     <!-- 新建分组按钮 -->
     <div class="add-group-section">
-      <button id="add-group-btn" class="add-group-btn" title="新建分组">
+      <button id="add-group-btn" class="add-group-btn" data-i18n-title="groups.newGroup" title="新建分组">
         <svg width="16" height="16" viewBox="0 0 16 16" style="margin-right: 6px;">
           <path d="M8 3 L8 13 M3 8 L13 8" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
         </svg>
-        <span>新建分组</span>
+        <span data-i18n="groups.newGroup">新建分组</span>
       </button>
     </div>
 
@@ -97,6 +112,7 @@
     </div>
   </div>
 
+  <script src="i18n.js"></script>
   <script src="groups.js"></script>
 </body>
 </html>

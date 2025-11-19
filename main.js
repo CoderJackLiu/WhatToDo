@@ -32,7 +32,7 @@ const settingsPath = path.join(app.getPath('userData'), 'settings.json');
 // 确保设置文件存在
 function ensureSettingsFile() {
   if (!fs.existsSync(settingsPath)) {
-    fs.writeFileSync(settingsPath, JSON.stringify({ autoStart: false, themeMode: 'light' }, null, 2));
+    fs.writeFileSync(settingsPath, JSON.stringify({ autoStart: false, themeMode: 'light', language: 'zh-CN' }, null, 2));
   }
 }
 
@@ -563,10 +563,10 @@ ipcMain.handle('load-settings', async () => {
       const data = fs.readFileSync(settingsPath, 'utf-8');
       return JSON.parse(data);
     }
-    return { autoStart: false, themeMode: 'light' };
+    return { autoStart: false, themeMode: 'light', language: 'zh-CN' };
   } catch (error) {
     console.error('Error loading settings:', error);
-    return { autoStart: false, themeMode: 'light' };
+    return { autoStart: false, themeMode: 'light', language: 'zh-CN' };
   }
 });
 
@@ -590,7 +590,7 @@ ipcMain.handle('set-auto-start', async (event, enabled) => {
     });
     
     // 保存设置（保留其他设置）
-    let settings = { autoStart: false, themeMode: 'light' };
+    let settings = { autoStart: false, themeMode: 'light', language: 'zh-CN' };
     if (fs.existsSync(settingsPath)) {
       try {
         settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
@@ -599,6 +599,10 @@ ipcMain.handle('set-auto-start', async (event, enabled) => {
       }
     }
     settings.autoStart = enabled;
+    // 确保 language 字段存在
+    if (!settings.language) {
+      settings.language = 'zh-CN';
+    }
     fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
     
     return { success: true };

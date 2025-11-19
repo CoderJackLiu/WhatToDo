@@ -11,6 +11,8 @@ const themeLightBtn = document.getElementById('theme-light-btn');
 const themeDarkBtn = document.getElementById('theme-dark-btn');
 const logoutBtn = document.getElementById('logout-btn');
 const userEmail = document.getElementById('user-email');
+const langZhBtn = document.getElementById('lang-zh-btn');
+const langEnBtn = document.getElementById('lang-en-btn');
 
 // 状态
 let groups = [];
@@ -20,6 +22,9 @@ let groupsSubscription = null;
 
 // 初始化应用
 async function init() {
+  // 初始化多语言
+  await initLanguage();
+  
   await loadUserInfo();
   await loadGroups();
   await loadSettings();
@@ -43,19 +48,75 @@ async function init() {
   });
 }
 
+// 初始化语言
+async function initLanguage() {
+  try {
+    const settings = await window.electronAPI.loadSettings();
+    const lang = settings?.language || 'zh-CN';
+    i18n.init(lang);
+    updateUI();
+  } catch (error) {
+    console.error('初始化语言失败:', error);
+    i18n.init('zh-CN');
+    updateUI();
+  }
+}
+
+// 更新界面文本
+function updateUI() {
+  // 更新所有带有 data-i18n 属性的元素
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    el.textContent = i18n.t(key);
+  });
+  
+  // 更新所有带有 data-i18n-title 属性的元素的 title
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    const key = el.getAttribute('data-i18n-title');
+    el.title = i18n.t(key);
+  });
+  
+  // 更新用户信息
+  if (userEmail.textContent === '加载中...') {
+    userEmail.textContent = i18n.t('loading');
+  } else if (userEmail.textContent === '未登录') {
+    userEmail.textContent = i18n.t('unknown');
+  } else if (userEmail.textContent === '加载失败') {
+    userEmail.textContent = i18n.t('failed');
+  }
+  
+  // 更新计数
+  updateCount();
+  
+  // 更新空状态
+  updateEmptyState();
+}
+
+// 更新空状态文本
+function updateEmptyState() {
+  const emptyState = groupList.querySelector('.empty-state');
+  if (emptyState) {
+    const icon = emptyState.querySelector('.empty-state-icon');
+    const text = emptyState.querySelector('.empty-state-text');
+    if (icon && text) {
+      text.innerHTML = `${i18n.t('groups.empty')}<br>${i18n.t('groups.emptyDesc')}`;
+    }
+  }
+}
+
 // 加载用户信息
 async function loadUserInfo() {
   try {
     const result = await window.electronAPI.auth.getCurrentUser();
     if (result.success && result.user) {
-      const email = result.user.email || result.user.user_metadata?.email || '未知用户';
+      const email = result.user.email || result.user.user_metadata?.email || i18n.t('unknown');
       userEmail.textContent = email;
     } else {
-      userEmail.textContent = '未登录';
+      userEmail.textContent = i18n.t('unknown');
     }
   } catch (error) {
     console.error('加载用户信息失败:', error);
-    userEmail.textContent = '加载失败';
+    userEmail.textContent = i18n.t('failed');
   }
 }
 
@@ -140,6 +201,15 @@ function bindEvents() {
     selectThemeMode('dark');
   });
   
+  // 语言切换
+  langZhBtn.addEventListener('click', () => {
+    selectLanguage('zh-CN');
+  });
+  
+  langEnBtn.addEventListener('click', () => {
+    selectLanguage('en-US');
+  });
+  
   // 开机自启动开关
   autoStartToggle.addEventListener('change', (e) => {
     const enabled = e.target.checked;
@@ -148,17 +218,17 @@ function bindEvents() {
   
   // 退出登录
   logoutBtn.addEventListener('click', async () => {
-    if (confirm('确定要退出登录吗？')) {
+    if (confirm(i18n.t('message.logoutConfirm'))) {
       try {
         const result = await window.electronAPI.auth.signOut();
         if (result.success) {
           window.location.href = 'login.html';
         } else {
-          alert('退出登录失败：' + (result.error || '未知错误'));
+          alert(i18n.t('message.logoutFailed') + (result.error || i18n.t('message.unknownError')));
         }
       } catch (error) {
         console.error('退出登录失败:', error);
-        alert('退出登录失败：' + error.message);
+        alert(i18n.t('message.logoutFailed') + error.message);
       }
     }
   });
@@ -185,6 +255,32 @@ function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
+// 选择语言
+async function selectLanguage(lang) {
+  if (i18n.setLanguage(lang)) {
+    // 更新语言按钮状态
+    if (lang === 'zh-CN') {
+      langZhBtn.classList.add('active');
+      langEnBtn.classList.remove('active');
+    } else {
+      langEnBtn.classList.add('active');
+      langZhBtn.classList.remove('active');
+    }
+    
+    // 更新界面文本
+    updateUI();
+    
+    // 保存设置
+    try {
+      const currentSettings = await window.electronAPI.loadSettings() || {};
+      currentSettings.language = lang;
+      await window.electronAPI.saveSettings(currentSettings);
+    } catch (error) {
+      console.error('保存语言设置失败:', error);
+    }
+  }
+}
+
 // 添加分组（云端）- 优化：乐观更新，立即响应
 async function addGroup() {
   try {
@@ -198,14 +294,14 @@ async function addGroup() {
       // 自动打开新创建的分组
       openGroup(result.data.id, '');
     } else {
-      alert('创建分组失败：' + (result.error || '未知错误'));
+      alert(i18n.t('groups.createFailed') + (result.error || i18n.t('message.unknownError')));
       // 失败后重新加载（回滚）
       await loadGroups();
       updateGroups();
     }
   } catch (error) {
     console.error('创建分组失败:', error);
-    alert('创建分组失败：' + error.message);
+    alert(i18n.t('groups.createFailed') + error.message);
     await loadGroups();
     updateGroups();
   }
@@ -213,7 +309,7 @@ async function addGroup() {
 
 // 删除分组（云端）
 async function deleteGroup(id) {
-  if (!confirm('确定要删除这个分组吗？分组内的所有待办事项也会被删除。')) {
+  if (!confirm(i18n.t('groups.deleteConfirm'))) {
     return;
   }
   
@@ -229,14 +325,14 @@ async function deleteGroup(id) {
       await loadGroups();
       updateGroups();
     } else {
-      alert('删除分组失败：' + (result.error || '未知错误'));
+      alert(i18n.t('groups.deleteFailed') + (result.error || i18n.t('message.unknownError')));
       if (item) {
         item.classList.remove('removing');
       }
     }
   } catch (error) {
     console.error('删除分组失败:', error);
-    alert('删除分组失败：' + error.message);
+    alert(i18n.t('groups.deleteFailed') + error.message);
     if (item) {
       item.classList.remove('removing');
     }
@@ -253,7 +349,7 @@ function openGroup(id, name) {
 // 生成任务缩略内容（最多5行）
 function getGroupPreviewText(todos) {
   if (!todos || todos.length === 0) {
-    return '暂无待办事项';
+    return i18n.t('groups.noTodos');
   }
   
   const maxLines = 5;
@@ -272,7 +368,8 @@ function getGroupPreviewText(todos) {
   }).join('\n');
   
   if (hasMore) {
-    previewText += `\n...还有 ${todos.length - maxLines} 项`;
+    const moreCount = todos.length - maxLines;
+    previewText += `\n...${i18n.t('groups.moreItems')} ${moreCount}${i18n.t('groups.item')}`;
   }
   
   return previewText;
@@ -326,7 +423,7 @@ function createGroupItem(group) {
   const deleteBtn = document.createElement('button');
   deleteBtn.className = 'delete-btn';
   deleteBtn.textContent = '×';
-  deleteBtn.title = '删除分组';
+  deleteBtn.title = i18n.t('groups.deleteGroup');
   deleteBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     deleteGroup(group.id);
@@ -422,7 +519,7 @@ function updateGroups() {
     emptyState.className = 'empty-state';
     emptyState.innerHTML = `
       <div class="empty-state-icon">📁</div>
-      <div class="empty-state-text">暂无分组<br>创建一个分组开始管理待办事项！</div>
+      <div class="empty-state-text">${i18n.t('groups.empty')}<br>${i18n.t('groups.emptyDesc')}</div>
     `;
     groupList.appendChild(emptyState);
     previousGroups = [];
@@ -508,7 +605,7 @@ function renderGroups() {
     emptyState.className = 'empty-state';
     emptyState.innerHTML = `
       <div class="empty-state-icon">📁</div>
-      <div class="empty-state-text">暂无分组<br>创建一个分组开始管理待办事项！</div>
+      <div class="empty-state-text">${i18n.t('groups.empty')}<br>${i18n.t('groups.emptyDesc')}</div>
     `;
     groupList.appendChild(emptyState);
   } else {
@@ -631,7 +728,7 @@ function getDragAfterElement(container, y) {
 // 更新计数
 function updateCount() {
   const totalGroups = groups.length;
-  groupCount.textContent = `${totalGroups} 个分组`;
+  groupCount.textContent = `${totalGroups}${i18n.t('groups.count')}`;
 }
 
 // 加载设置
@@ -644,6 +741,16 @@ async function loadSettings() {
       }
       if (settings.themeMode) {
         applyThemeMode(settings.themeMode);
+      }
+      if (settings.language) {
+        // 设置语言按钮状态
+        if (settings.language === 'zh-CN') {
+          langZhBtn.classList.add('active');
+          langEnBtn.classList.remove('active');
+        } else {
+          langEnBtn.classList.add('active');
+          langZhBtn.classList.remove('active');
+        }
       }
     }
   } catch (error) {

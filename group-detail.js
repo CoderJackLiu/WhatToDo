@@ -25,6 +25,9 @@ let currentTheme = 'default';
 
 // 初始化应用
 async function init() {
+  // 初始化多语言
+  await initLanguage();
+  
   // 加载主题模式设置
   await loadThemeMode();
   
@@ -35,7 +38,7 @@ async function init() {
   window.electronAPI.onGroupInfo((data) => {
     currentGroupId = data.groupId;
     currentGroupName = data.groupName; // 保留数据，但不显示
-    windowTitle.textContent = 'TodoList'; // 使用固定标题
+    windowTitle.textContent = i18n.t('detail.title'); // 使用固定标题
     loadGroupData();
     // 确保显示标题栏和底部
     showTitlebarAndFooter();
@@ -52,6 +55,65 @@ async function init() {
       applyTheme(currentTheme);
     }
   });
+}
+
+// 初始化语言
+async function initLanguage() {
+  try {
+    const settings = await window.electronAPI.loadSettings();
+    const lang = settings?.language || 'zh-CN';
+    i18n.init(lang);
+    updateUI();
+  } catch (error) {
+    console.error('初始化语言失败:', error);
+    i18n.init('zh-CN');
+    updateUI();
+  }
+}
+
+// 更新界面文本
+function updateUI() {
+  // 更新所有带有 data-i18n 属性的元素
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    el.textContent = i18n.t(key);
+  });
+  
+  // 更新所有带有 data-i18n-title 属性的元素的 title
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    const key = el.getAttribute('data-i18n-title');
+    el.title = i18n.t(key);
+  });
+  
+  // 更新所有带有 data-i18n-placeholder 属性的元素的 placeholder
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    el.placeholder = i18n.t(key);
+  });
+  
+  // 更新窗口标题
+  windowTitle.textContent = i18n.t('detail.title');
+  
+  // 更新计数
+  updateCount();
+  
+  // 更新空状态
+  updateEmptyState();
+  
+  // 更新置顶按钮
+  updatePinButton();
+}
+
+// 更新空状态文本
+function updateEmptyState() {
+  const emptyState = todoList.querySelector('.empty-state');
+  if (emptyState) {
+    const icon = emptyState.querySelector('.empty-state-icon');
+    const text = emptyState.querySelector('.empty-state-text');
+    if (icon && text) {
+      text.innerHTML = `${i18n.t('todos.empty')}<br>${i18n.t('todos.emptyDesc')}`;
+    }
+  }
 }
 
 // 加载主题模式
@@ -250,10 +312,10 @@ function setupTitlebarAutoHide() {
 function updatePinButton() {
   if (isAlwaysOnTop) {
     pinBtn.classList.add('active');
-    pinBtn.title = '取消置顶';
+    pinBtn.title = i18n.t('detail.pinWindow'); // 可以添加 '取消置顶' 的翻译，这里暂时复用
   } else {
     pinBtn.classList.remove('active');
-    pinBtn.title = '置顶窗口';
+    pinBtn.title = i18n.t('detail.pinWindow');
   }
 }
 
@@ -279,13 +341,13 @@ async function addTodo() {
       // 从缓存重新加载（已包含新添加的待办）
       await loadGroupData();
     } else {
-      alert('添加待办失败：' + (result.error || '未知错误'));
+      alert(i18n.t('todos.addFailed') + (result.error || i18n.t('message.unknownError')));
       // 失败后重新加载，data-service 会自动回滚缓存
       await loadGroupData();
     }
   } catch (error) {
     console.error('添加待办失败:', error);
-    alert('添加待办失败：' + error.message);
+    alert(i18n.t('todos.addFailed') + error.message);
     await loadGroupData();
   }
 }
@@ -327,14 +389,14 @@ async function deleteTodo(id) {
       // 重新加载待办列表
       await loadGroupData();
     } else {
-      alert('删除待办失败：' + (result.error || '未知错误'));
+      alert(i18n.t('todos.deleteFailed') + (result.error || i18n.t('message.unknownError')));
       if (item) {
         item.classList.remove('removing');
       }
     }
   } catch (error) {
     console.error('删除待办失败:', error);
-    alert('删除待办失败：' + error.message);
+    alert(i18n.t('todos.deleteFailed') + error.message);
     if (item) {
       item.classList.remove('removing');
     }
@@ -416,7 +478,7 @@ async function clearCompleted() {
   const completedTodos = todos.filter(t => t.completed);
   if (completedTodos.length === 0) return;
   
-  if (!confirm(`确定要删除 ${completedTodos.length} 个已完成的待办事项吗？`)) {
+  if (!confirm(i18n.t('todos.clearConfirm').replace('{count}', completedTodos.length))) {
     return;
   }
   
@@ -427,11 +489,11 @@ async function clearCompleted() {
       // 重新加载待办列表
       await loadGroupData();
     } else {
-      alert('清除失败：' + (result.error || '未知错误'));
+      alert(i18n.t('todos.clearFailed') + (result.error || i18n.t('message.unknownError')));
     }
   } catch (error) {
     console.error('清除失败:', error);
-    alert('清除失败：' + error.message);
+    alert(i18n.t('todos.clearFailed') + error.message);
   }
 }
 
@@ -444,7 +506,7 @@ function renderTodos() {
     emptyState.className = 'empty-state';
     emptyState.innerHTML = `
       <div class="empty-state-icon">📝</div>
-      <div class="empty-state-text">暂无待办事项<br>添加一个开始吧！</div>
+      <div class="empty-state-text">${i18n.t('todos.empty')}<br>${i18n.t('todos.emptyDesc')}</div>
     `;
     todoList.appendChild(emptyState);
   } else {
@@ -622,11 +684,11 @@ function updateCount() {
   const totalCount = todos.length;
   
   if (totalCount === 0) {
-    todoCount.textContent = '0 个待办事项';
+    todoCount.textContent = `0${i18n.t('todos.count')}`;
   } else if (activeCount === totalCount) {
-    todoCount.textContent = `${activeCount} 个待办事项`;
+    todoCount.textContent = `${activeCount}${i18n.t('todos.count')}`;
   } else {
-    todoCount.textContent = `${activeCount} / ${totalCount} 个待办事项`;
+    todoCount.textContent = `${activeCount} / ${totalCount}${i18n.t('todos.count')}`;
   }
   
   const hasCompleted = todos.some(t => t.completed);
