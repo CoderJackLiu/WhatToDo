@@ -7,7 +7,7 @@
     "node": ">=16.0.0"
   },
   "scripts": {
-    "start": "electron .",
+    "start": "chcp 65001 >nul && electron .",
     "build": "electron-builder --win --x64",
     "build:dir": "electron-builder --win --x64 --dir"
   },

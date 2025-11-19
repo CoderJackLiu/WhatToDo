@@ -1,6 +1,16 @@
 const { supabase } = require('./supabase-config');
 const cacheService = require('./cache-service');
 
+// 全局日志开关
+const DEBUG_MODE = process.env.DEBUG === 'true' || false;
+
+// 日志包装函数
+const debugLog = (...args) => {
+  if (DEBUG_MODE) {
+    console.log(...args);
+  }
+};
+
 class DataService {
   constructor() {
     this.subscriptions = new Map();
@@ -241,10 +251,24 @@ class DataService {
 
   // 加载分组下的所有待办（按 sort_order 排序）- 优先从缓存加载
   async loadTodos(groupId, forceRefresh = false) {
+    debugLog('[data-service] loadTodos 调用, groupId:', groupId, 'forceRefresh:', forceRefresh);
+    
     try {
+      // 检查用户登录状态
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        console.warn('[data-service] 用户未登录或认证失败:', authError);
+        // 即使未登录，也尝试返回缓存数据
+        const cachedTodos = cacheService.getTodosCache(groupId);
+        console.log('[data-service] 用户未登录，返回缓存数据, 数量:', cachedTodos.length);
+        return { success: true, data: cachedTodos, fromCache: true, authError: true };
+      }
+      debugLog('[data-service] 用户已登录, userId:', user.id);
+      
       // 如果不强制刷新，优先从缓存读取
       if (!forceRefresh && this.useCacheFirst) {
         const cachedTodos = cacheService.getTodosCache(groupId);
+        debugLog('[data-service] 从缓存读取待办, 数量:', cachedTodos.length);
         if (cachedTodos.length > 0) {
           // 后台异步同步服务器数据
           this._syncTodosInBackground(groupId);
@@ -253,23 +277,35 @@ class DataService {
       }
 
       // 从服务器加载
+      debugLog('[data-service] 从服务器加载待办, groupId:', groupId);
+      
       const { data, error } = await supabase
         .from('todos')
         .select('*')
         .eq('group_id', groupId)
         .order('sort_order', { ascending: true });
       
-      if (error) throw error;
+      if (error) {
+        console.error('[data-service] 从服务器加载待办失败:', error);
+        console.error('[data-service] 错误详情:', JSON.stringify(error, null, 2));
+        throw error;
+      }
+      
+      debugLog('[data-service] 从服务器加载待办成功, 数量:', data?.length || 0);
       
       // 保存到缓存
       cacheService.saveTodosCache(groupId, data || []);
       
       return { success: true, data: data || [] };
     } catch (error) {
-      console.error('Failed to load todos:', error);
+      console.error('[data-service] Failed to load todos:', error);
+      console.error('[data-service] 错误类型:', error.constructor.name);
+      console.error('[data-service] 错误消息:', error.message);
+      console.error('[data-service] 错误堆栈:', error.stack);
       
       // 如果服务器请求失败，尝试返回缓存数据
       const cachedTodos = cacheService.getTodosCache(groupId);
+      debugLog('[data-service] 尝试返回缓存数据, 数量:', cachedTodos.length);
       if (cachedTodos.length > 0) {
         return { success: true, data: cachedTodos, fromCache: true, error: error.message };
       }
@@ -572,11 +608,15 @@ class DataService {
   subscribeToTodos(groupId, callback) {
     const channelName = `todos-${groupId}`;
     
+    debugLog('[data-service] subscribeToTodos 调用, groupId:', groupId, 'channelName:', channelName);
+    
     // 取消之前的订阅
     if (this.subscriptions.has(channelName)) {
+      debugLog('[data-service] 取消之前的订阅, channelName:', channelName);
       this.unsubscribe(channelName);
     }
 
+    debugLog('[data-service] 创建新的订阅, channelName:', channelName);
     const channel = supabase
       .channel(channelName)
       .on('postgres_changes',
@@ -587,12 +627,16 @@ class DataService {
           filter: `group_id=eq.${groupId}`
         },
         (payload) => {
+          debugLog('[data-service] 收到待办变化通知, groupId:', groupId, 'eventType:', payload.eventType);
           // 根据事件类型更新缓存
           if (payload.eventType === 'INSERT' && payload.new) {
+            debugLog('[data-service] 添加待办到缓存:', payload.new);
             cacheService.addTodoCache(groupId, payload.new);
           } else if (payload.eventType === 'UPDATE' && payload.new) {
+            debugLog('[data-service] 更新待办缓存:', payload.new);
             cacheService.updateTodoCache(groupId, payload.new.id, payload.new);
           } else if (payload.eventType === 'DELETE' && payload.old) {
+            debugLog('[data-service] 从缓存删除待办:', payload.old);
             cacheService.deleteTodoCache(groupId, payload.old.id);
           }
           
@@ -603,6 +647,7 @@ class DataService {
       .subscribe();
 
     this.subscriptions.set(channelName, channel);
+    debugLog('[data-service] 订阅完成, channelName:', channelName);
     return channel;
   }
 

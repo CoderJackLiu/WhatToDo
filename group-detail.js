@@ -1,3 +1,15 @@
+// 全局日志开关（与主进程保持一致，通过环境变量或直接修改）
+const DEBUG_MODE = false; // 设置为 true 启用详细日志
+
+// 日志包装函数
+const debugLog = (...args) => {
+  if (DEBUG_MODE) {
+    console.log(...args);
+  }
+};
+
+debugLog('[group-detail] 脚本开始加载');
+
 // DOM 元素
 const todoInput = document.getElementById('todo-input');
 const addBtn = document.getElementById('add-btn');
@@ -15,6 +27,9 @@ const titlebarTrigger = document.querySelector('.titlebar-trigger');
 const inputSection = document.querySelector('.input-section');
 const footer = document.querySelector('.footer');
 
+debugLog('[group-detail] DOM 元素获取完成');
+debugLog('[group-detail] window.electronAPI 是否存在:', typeof window.electronAPI !== 'undefined');
+
 // 当前分组信息
 let currentGroupId = null;
 let currentGroupName = '';
@@ -25,36 +40,79 @@ let currentTheme = 'default';
 
 // 初始化应用
 async function init() {
-  // 初始化多语言
-  await initLanguage();
+  debugLog('[group-detail] init() 函数开始执行');
   
-  // 加载主题模式设置
-  await loadThemeMode();
-  
-  // 默认显示标题栏和底部（新建/打开分组时）
-  showTitlebarAndFooter();
-  
-  // 接收分组信息
-  window.electronAPI.onGroupInfo((data) => {
-    currentGroupId = data.groupId;
-    currentGroupName = data.groupName; // 保留数据，但不显示
-    windowTitle.textContent = i18n.t('detail.title'); // 使用固定标题
-    loadGroupData();
-    // 确保显示标题栏和底部
-    showTitlebarAndFooter();
-  });
-  
-  // 绑定事件
-  bindEvents();
-  
-  // 监听主题变化
-  window.electronAPI.onThemeChanged(async () => {
-    await loadThemeMode();
-    // 重新应用分组主题颜色（标题栏）
-    if (currentTheme) {
-      applyTheme(currentTheme);
+  try {
+    // 检查 electronAPI 是否可用
+    if (typeof window.electronAPI === 'undefined') {
+      console.error('[group-detail] window.electronAPI 未定义！');
+      return;
     }
-  });
+    
+    debugLog('[group-detail] window.electronAPI 可用');
+    debugLog('[group-detail] window.electronAPI.onGroupInfo 是否存在:', typeof window.electronAPI.onGroupInfo !== 'undefined');
+    
+    // 初始化多语言
+    debugLog('[group-detail] 开始初始化语言');
+    await initLanguage();
+    debugLog('[group-detail] 语言初始化完成');
+    
+    // 加载主题模式设置
+    debugLog('[group-detail] 开始加载主题模式');
+    await loadThemeMode();
+    debugLog('[group-detail] 主题模式加载完成');
+    
+    // 默认显示标题栏和底部（新建/打开分组时）
+    showTitlebarAndFooter();
+    
+    // 接收分组信息
+    debugLog('[group-detail] 设置分组信息监听器');
+    window.electronAPI.onGroupInfo((data) => {
+      debugLog('[group-detail] ========== 收到分组信息 ==========');
+      debugLog('[group-detail] 接收到的数据:', data);
+      debugLog('[group-detail] data.groupId:', data.groupId);
+      debugLog('[group-detail] data.groupName:', data.groupName);
+      
+      currentGroupId = data.groupId;
+      currentGroupName = data.groupName; // 保留数据，但不显示
+      debugLog('[group-detail] 设置 currentGroupId:', currentGroupId);
+      debugLog('[group-detail] 设置 currentGroupName:', currentGroupName);
+      
+      if (windowTitle) {
+        windowTitle.textContent = i18n.t('detail.title'); // 使用固定标题
+        debugLog('[group-detail] 窗口标题已更新');
+      } else {
+        console.error('[group-detail] ❌ windowTitle 元素不存在');
+      }
+      
+      debugLog('[group-detail] 准备调用 loadGroupData()');
+      loadGroupData();
+      
+      // 确保显示标题栏和底部
+      showTitlebarAndFooter();
+      debugLog('[group-detail] ========== 分组信息处理完成 ==========');
+    });
+    debugLog('[group-detail] 分组信息监听器设置完成');
+    
+    // 绑定事件
+    debugLog('[group-detail] 开始绑定事件');
+    bindEvents();
+    debugLog('[group-detail] 事件绑定完成');
+    
+    // 监听主题变化
+    window.electronAPI.onThemeChanged(async () => {
+      await loadThemeMode();
+      // 重新应用分组主题颜色（标题栏）
+      if (currentTheme) {
+        applyTheme(currentTheme);
+      }
+    });
+    
+    debugLog('[group-detail] init() 函数执行完成');
+  } catch (error) {
+    console.error('[group-detail] init() 函数执行出错:', error);
+    console.error('[group-detail] 错误堆栈:', error.stack);
+  }
 }
 
 // 初始化语言
@@ -147,49 +205,115 @@ function applyThemeMode(mode) {
 
 // 加载分组数据（从云端）
 async function loadGroupData() {
-  if (!currentGroupId) return;
+  debugLog('[group-detail] ========== loadGroupData 开始 ==========');
+  debugLog('[group-detail] currentGroupId:', currentGroupId);
+  debugLog('[group-detail] currentGroupId 类型:', typeof currentGroupId);
+  debugLog('[group-detail] currentGroupId 是否为空:', !currentGroupId);
+  
+  if (!currentGroupId) {
+    console.error('[group-detail] ❌ currentGroupId 为空，无法加载数据');
+    console.error('[group-detail] 检查 window.electronAPI:', typeof window.electronAPI);
+    return;
+  }
   
   try {
     // 加载分组信息（获取主题）
+    debugLog('[group-detail] 步骤1: 开始加载分组信息...');
     const groupsResult = await window.electronAPI.data.loadGroups();
+    debugLog('[group-detail] 步骤1完成: 加载分组信息结果');
+    debugLog('[group-detail] groupsResult.success:', groupsResult.success);
+    debugLog('[group-detail] groupsResult.data 长度:', groupsResult.data?.length);
+    
     if (groupsResult.success) {
+      debugLog('[group-detail] 查找分组，currentGroupId:', currentGroupId);
       const group = groupsResult.data.find(g => g.id === currentGroupId);
+      debugLog('[group-detail] 找到分组:', group ? '是' : '否');
+      debugLog('[group-detail] 分组详情:', group);
+      
       if (group) {
         // 加载并应用分组的主题（标题栏颜色）
         const groupTheme = group.theme || 'default';
         currentTheme = groupTheme;
+        debugLog('[group-detail] 设置主题:', groupTheme);
         // 延迟应用主题，确保主题模式已加载
         setTimeout(() => {
           applyTheme(groupTheme);
         }, 100);
+      } else {
+        console.warn('[group-detail] ⚠️ 未找到分组，currentGroupId:', currentGroupId);
+        console.warn('[group-detail] 所有分组ID:', groupsResult.data.map(g => g.id));
       }
+    } else {
+      console.error('[group-detail] ❌ 加载分组信息失败:', groupsResult.error);
     }
     
     // 加载待办事项
+    debugLog('[group-detail] 步骤2: 开始加载待办事项');
+    debugLog('[group-detail] 调用 loadTodos，groupId:', currentGroupId);
     const todosResult = await window.electronAPI.data.loadTodos(currentGroupId);
+    debugLog('[group-detail] 步骤2完成: 加载待办事项结果');
+    debugLog('[group-detail] todosResult:', todosResult);
+    debugLog('[group-detail] todosResult.success:', todosResult.success);
+    debugLog('[group-detail] todosResult.data:', todosResult.data);
+    debugLog('[group-detail] todosResult.data 类型:', Array.isArray(todosResult.data) ? '数组' : typeof todosResult.data);
+    debugLog('[group-detail] todosResult.data 长度:', todosResult.data?.length);
+    
     if (todosResult.success) {
+      debugLog('[group-detail] 步骤3: 开始转换数据格式');
+      debugLog('[group-detail] 原始数据:', JSON.stringify(todosResult.data, null, 2));
+      
       // 转换数据格式：将云端数据转换为本地格式
-      todos = todosResult.data.map(t => ({
-        id: t.id,
-        text: t.text,
-        completed: t.completed,
-        createdAt: new Date(t.created_at).getTime(),
-        updatedAt: new Date(t.updated_at).getTime()
-      }));
+      todos = todosResult.data.map(t => {
+        debugLog('[group-detail] 转换待办项:', t);
+        return {
+          id: t.id,
+          text: t.text,
+          completed: t.completed,
+          createdAt: new Date(t.created_at).getTime(),
+          updatedAt: new Date(t.updated_at).getTime()
+        };
+      });
+      
+      debugLog('[group-detail] 步骤3完成: 转换后的待办事项数量:', todos.length);
+      debugLog('[group-detail] 转换后的待办事项详情:', JSON.stringify(todos, null, 2));
+      
+      if (todosResult.error && !todosResult.fromCache) {
+        console.warn('[group-detail] ⚠️ 加载待办时有错误，但返回了数据:', todosResult.error);
+      }
+      
+      debugLog('[group-detail] 步骤4: 调用 renderTodos()');
       renderTodos();
+      debugLog('[group-detail] 步骤4完成: renderTodos() 执行完成');
     } else {
-      console.error('加载待办失败:', todosResult.error);
+      console.error('[group-detail] ❌ 加载待办失败');
+      console.error('[group-detail] todosResult.error:', todosResult.error);
+      console.error('[group-detail] 失败详情:', JSON.stringify(todosResult, null, 2));
+      
+      // 即使失败，也尝试渲染空列表
       todos = [];
+      debugLog('[group-detail] 设置 todos 为空数组');
       renderTodos();
+      
+      // 显示错误提示（可选）
+      if (todosResult.error && todosResult.error.includes('fetch failed')) {
+        console.warn('[group-detail] ⚠️ 网络连接失败，请检查网络连接');
+      }
     }
     
     // 订阅待办变化（实时同步）
+    debugLog('[group-detail] 步骤5: 订阅待办变化');
     subscribeToTodos();
+    debugLog('[group-detail] 步骤5完成: 订阅完成');
     
     // 确保显示标题栏和底部
+    debugLog('[group-detail] 步骤6: 显示标题栏和底部');
     showTitlebarAndFooter();
+    debugLog('[group-detail] ========== loadGroupData 完成 ==========');
   } catch (error) {
-    console.error('加载分组数据失败:', error);
+    console.error('[group-detail] ❌❌❌ 加载分组数据异常 ❌❌❌');
+    console.error('[group-detail] 错误:', error);
+    console.error('[group-detail] 错误消息:', error.message);
+    console.error('[group-detail] 错误堆栈:', error.stack);
     todos = [];
     renderTodos();
     // 即使出错也显示标题栏和底部
@@ -200,19 +324,28 @@ async function loadGroupData() {
 // 订阅待办变化（实时同步）- 优化：减少不必要的重新加载
 let todosSubscription = null;
 function subscribeToTodos() {
-  if (!currentGroupId) return;
+  debugLog('[group-detail] subscribeToTodos 调用, currentGroupId:', currentGroupId);
+  
+  if (!currentGroupId) {
+    console.warn('[group-detail] currentGroupId 为空，无法订阅');
+    return;
+  }
   
   // 取消之前的订阅
   if (todosSubscription) {
+    debugLog('[group-detail] 取消之前的订阅');
     todosSubscription();
     todosSubscription = null;
   }
   
+  debugLog('[group-detail] 开始订阅待办变化，groupId:', currentGroupId);
   todosSubscription = window.electronAPI.data.subscribeToTodos(currentGroupId, (payload) => {
+    debugLog('[group-detail] 收到待办变化通知:', payload);
     // 实时更新已由 data-service 处理缓存同步
     // 这里只需刷新UI（从已更新的缓存读取）
     loadGroupData();
   });
+  debugLog('[group-detail] 订阅完成');
 }
 
 // 绑定事件
@@ -328,7 +461,16 @@ function generateId() {
 async function addTodo() {
   const text = todoInput.value.trim();
   
-  if (!text || !currentGroupId) {
+  debugLog('[group-detail] addTodo 调用, text:', text, 'currentGroupId:', currentGroupId);
+  
+  if (!text) {
+    console.warn('[group-detail] 待办文本为空');
+    return;
+  }
+  
+  if (!currentGroupId) {
+    console.error('[group-detail] currentGroupId 为空，无法添加待办');
+    alert('错误：分组ID未设置，请重新打开分组');
     return;
   }
   
@@ -336,17 +478,22 @@ async function addTodo() {
   
   try {
     // 乐观更新：data-service 会立即更新缓存，这里立即刷新UI
+    debugLog('[group-detail] 开始创建待办，groupId:', currentGroupId, 'text:', text);
     const result = await window.electronAPI.data.createTodo(currentGroupId, text);
+    debugLog('[group-detail] 创建待办结果:', result);
+    
     if (result.success) {
       // 从缓存重新加载（已包含新添加的待办）
       await loadGroupData();
     } else {
+      console.error('[group-detail] 创建待办失败:', result.error);
       alert(i18n.t('todos.addFailed') + (result.error || i18n.t('message.unknownError')));
       // 失败后重新加载，data-service 会自动回滚缓存
       await loadGroupData();
     }
   } catch (error) {
-    console.error('添加待办失败:', error);
+    console.error('[group-detail] 添加待办异常:', error);
+    console.error('[group-detail] 错误堆栈:', error.stack);
     alert(i18n.t('todos.addFailed') + error.message);
     await loadGroupData();
   }
@@ -499,9 +646,24 @@ async function clearCompleted() {
 
 // 渲染待办列表
 function renderTodos() {
+  debugLog('[group-detail] ========== renderTodos 开始 ==========');
+  debugLog('[group-detail] todos 变量:', todos);
+  debugLog('[group-detail] todos 类型:', Array.isArray(todos) ? '数组' : typeof todos);
+  debugLog('[group-detail] todos 数量:', todos.length);
+  debugLog('[group-detail] todos 详情:', JSON.stringify(todos, null, 2));
+  debugLog('[group-detail] todoList 元素:', todoList);
+  debugLog('[group-detail] todoList 是否存在:', !!todoList);
+  
+  if (!todoList) {
+    console.error('[group-detail] ❌ todoList 元素不存在！');
+    return;
+  }
+  
+  debugLog('[group-detail] 清空 todoList');
   todoList.innerHTML = '';
   
   if (todos.length === 0) {
+    debugLog('[group-detail] 待办列表为空，显示空状态');
     const emptyState = document.createElement('div');
     emptyState.className = 'empty-state';
     emptyState.innerHTML = `
@@ -509,8 +671,11 @@ function renderTodos() {
       <div class="empty-state-text">${i18n.t('todos.empty')}<br>${i18n.t('todos.emptyDesc')}</div>
     `;
     todoList.appendChild(emptyState);
+    debugLog('[group-detail] 空状态已添加到 DOM');
   } else {
-    todos.forEach(todo => {
+    debugLog('[group-detail] 开始渲染', todos.length, '个待办项');
+    todos.forEach((todo, index) => {
+      debugLog(`[group-detail] 渲染第 ${index + 1} 个待办项:`, todo);
       const li = document.createElement('li');
       li.className = `todo-item ${todo.completed ? 'completed' : ''}`;
       li.setAttribute('data-id', todo.id);
@@ -560,10 +725,14 @@ function renderTodos() {
       });
       
       todoList.appendChild(li);
+      debugLog(`[group-detail] 第 ${index + 1} 个待办项已添加到 DOM`);
     });
+    debugLog('[group-detail] 所有待办项渲染完成');
   }
   
+  debugLog('[group-detail] 调用 updateCount()');
   updateCount();
+  debugLog('[group-detail] ========== renderTodos 完成 ==========');
 }
 
 // 拖动排序相关
@@ -930,5 +1099,15 @@ function hideThemeMenu() {
 }
 
 // 启动应用
-init();
+debugLog('[group-detail] 准备调用 init()');
+if (document.readyState === 'loading') {
+  debugLog('[group-detail] 文档还在加载中，等待 DOMContentLoaded');
+  document.addEventListener('DOMContentLoaded', () => {
+    debugLog('[group-detail] DOMContentLoaded 事件触发，调用 init()');
+    init();
+  });
+} else {
+  debugLog('[group-detail] 文档已加载，立即调用 init()');
+  init();
+}
 

@@ -1,3 +1,31 @@
+// 设置控制台输出编码为 UTF-8（解决 Windows PowerShell 中文乱码问题）
+if (process.platform === 'win32') {
+  try {
+    // 设置 stdout 和 stderr 编码
+    if (process.stdout.setDefaultEncoding) {
+      process.stdout.setDefaultEncoding('utf8');
+    }
+    if (process.stderr.setDefaultEncoding) {
+      process.stderr.setDefaultEncoding('utf8');
+    }
+    // 设置环境变量
+    process.env.PYTHONIOENCODING = 'utf-8';
+  } catch (e) {
+    // 忽略错误
+  }
+}
+
+// 全局日志开关（设置为 true 启用详细日志，false 禁用）
+// 可以通过环境变量 DEBUG=true 来启用，或者直接修改这里的值
+const DEBUG_MODE = process.env.DEBUG === 'true' || false;
+
+// 日志包装函数
+const debugLog = (...args) => {
+  if (DEBUG_MODE) {
+    console.log(...args);
+  }
+};
+
 const { app, BrowserWindow, ipcMain, Menu, Tray } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -139,11 +167,54 @@ function createGroupWindow(groupId, groupName) {
     }
   });
 
+  debugLog('[main] 创建分组窗口, groupId:', groupId, 'groupName:', groupName);
+  
+  // 监听渲染进程的控制台输出（备用方案）
+  groupWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    if (DEBUG_MODE) {
+      const prefix = '[group-detail-renderer-console]';
+      if (level === 0) {
+        console.log(`${prefix} ${message}`);
+      } else if (level === 1) {
+        console.warn(`${prefix} ${message}`);
+      } else if (level === 2) {
+        console.error(`${prefix} ${message}`);
+      }
+    }
+  });
+  
+  // 监听页面错误
+  groupWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+    console.error('[main] 分组窗口加载失败:', errorCode, errorDescription, validatedURL);
+  });
+  
+  groupWindow.webContents.on('render-process-gone', (event, details) => {
+    console.error('[main] 渲染进程崩溃:', details);
+  });
+  
+  groupWindow.webContents.on('unresponsive', () => {
+    console.warn('[main] 分组窗口无响应');
+  });
+  
   groupWindow.loadFile('group-detail.html');
 
   // 窗口加载完成后发送分组信息（保留groupName字段，但不显示）
   groupWindow.webContents.on('did-finish-load', () => {
-    groupWindow.webContents.send('group-info', { groupId, groupName: groupName || '' });
+    debugLog('[main] 分组窗口加载完成，发送分组信息, groupId:', groupId, 'groupName:', groupName);
+    
+    // 延迟发送，确保脚本已加载
+    setTimeout(() => {
+      groupWindow.webContents.send('group-info', { groupId, groupName: groupName || '' });
+      debugLog('[main] 分组信息已发送');
+    }, 100);
+    
+    // 窗口加载完成后再打开开发者工具
+    try {
+      //groupWindow.webContents.openDevTools();
+      debugLog('[main] 开发者工具已打开');
+    } catch (error) {
+      console.error('[main] 打开开发者工具失败:', error);
+    }
   });
 
   // 监听窗口焦点变化
@@ -155,8 +226,10 @@ function createGroupWindow(groupId, groupName) {
     groupWindow.webContents.send('window-blur');
   });
 
-  // 开发模式下打开开发者工具
-  // groupWindow.webContents.openDevTools();
+  // 监听窗口错误
+  groupWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    console.error('[main] 分组窗口加载失败:', errorCode, errorDescription);
+  });
 
   groupWindow.on('closed', () => {
     groupWindows.delete(groupId);
@@ -497,14 +570,36 @@ ipcMain.handle('data-reorder-todos', async (event, groupId, todoIds) => {
 
 // 订阅待办变化
 ipcMain.on('subscribe-todos', (event, groupId) => {
+  debugLog('[main] 收到订阅待办请求, groupId:', groupId);
   dataService.subscribeToTodos(groupId, (payload) => {
+    debugLog('[main] 待办变化，发送给渲染进程, groupId:', groupId, 'payload:', payload);
     event.sender.send(`data-todos-changed-${groupId}`, payload);
   });
 });
 
+// 接收渲染进程的日志
+ipcMain.on('renderer-log', (event, level, message) => {
+  if (DEBUG_MODE) {
+    const prefix = '[group-detail-renderer]';
+    if (level === 'error') {
+      console.error(`${prefix} ${message}`);
+    } else if (level === 'warn') {
+      console.warn(`${prefix} ${message}`);
+    } else {
+      console.log(`${prefix} ${message}`);
+    }
+  }
+});
+
 // 打开分组窗口
 ipcMain.on('open-group', (event, { groupId, groupName }) => {
-  createGroupWindow(groupId, groupName);
+  debugLog('[main] 收到打开分组请求, groupId:', groupId, 'groupName:', groupName);
+  try {
+    createGroupWindow(groupId, groupName);
+    debugLog('[main] 分组窗口创建成功');
+  } catch (error) {
+    console.error('[main] 创建分组窗口失败:', error);
+  }
 });
 
 // 分组数据变化通知

@@ -1,5 +1,32 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+// 日志开关（从环境变量获取，与主进程保持一致）
+const DEBUG_MODE = process.env.DEBUG === 'true' || false;
+
+// 拦截 console 并转发到主进程（仅在 DEBUG_MODE 开启时）
+const originalLog = console.log;
+const originalError = console.error;
+const originalWarn = console.warn;
+
+console.log = function(...args) {
+  originalLog.apply(console, args);
+  if (DEBUG_MODE) {
+    ipcRenderer.send('renderer-log', 'log', args.join(' '));
+  }
+};
+
+console.error = function(...args) {
+  originalError.apply(console, args);
+  // 错误始终转发
+  ipcRenderer.send('renderer-log', 'error', args.join(' '));
+};
+
+console.warn = function(...args) {
+  originalWarn.apply(console, args);
+  // 警告始终转发
+  ipcRenderer.send('renderer-log', 'warn', args.join(' '));
+};
+
 // 暴露安全的 API 给渲染进程
 contextBridge.exposeInMainWorld('electronAPI', {
   // ========== 认证 API ==========
@@ -46,8 +73,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     subscribeToTodos: (groupId, callback) => {
       const channel = `data-todos-changed-${groupId}`;
+      // 向主进程发送订阅请求
+      ipcRenderer.send('subscribe-todos', groupId);
+      // 监听待办变化消息
       ipcRenderer.on(channel, (event, ...args) => callback(...args));
-      return () => ipcRenderer.removeAllListeners(channel);
+      // 返回取消订阅函数
+      return () => {
+        ipcRenderer.removeAllListeners(channel);
+        // 注意：这里不发送取消订阅消息，因为主进程会管理订阅
+      };
     }
   },
 
@@ -74,6 +108,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setAutoStart: (enabled) => ipcRenderer.invoke('set-auto-start', enabled),
   getThemeMode: () => ipcRenderer.invoke('get-theme-mode'),
   notifyThemeChanged: () => ipcRenderer.send('theme-changed'),
-  onThemeChanged: (callback) => ipcRenderer.on('theme-changed', () => callback())
+  onThemeChanged: (callback) => ipcRenderer.on('theme-changed', () => callback()),
+  
 });
 
