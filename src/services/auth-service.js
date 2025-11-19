@@ -144,15 +144,63 @@ class AuthService {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'github',
         options: {
-          redirectTo: 'com.electron.todolist://auth/callback'
+          redirectTo: 'com.electron.todolist://auth/callback',
+          skipBrowserRedirect: true  // 在Node.js中必须设置为true才能获取URL
         }
       });
       
-      if (error) throw error;
-      return { success: true, data };
+      if (error) {
+        console.error('GitHub OAuth错误:', error);
+        throw error;
+      }
+      
+      // 检查返回的数据结构
+      let url = null;
+      if (data) {
+        // Supabase在Node.js环境中应该返回 { url: string }
+        url = data.url || data.providerUrl || (data.provider && data.provider.url);
+        
+        // 如果data本身就是一个URL字符串
+        if (typeof data === 'string') {
+          url = data;
+        }
+        
+        // 检查是否有嵌套的url属性
+        if (!url && typeof data === 'object') {
+          // 尝试深度查找url
+          const findUrl = (obj) => {
+            if (typeof obj === 'string' && obj.startsWith('http')) return obj;
+            if (typeof obj !== 'object' || obj === null) return null;
+            if (obj.url && typeof obj.url === 'string') return obj.url;
+            for (const key in obj) {
+              const result = findUrl(obj[key]);
+              if (result) return result;
+            }
+            return null;
+          };
+          url = findUrl(data);
+        }
+      }
+      
+      // 如果仍然没有URL，说明Supabase配置可能有问题
+      if (!url) {
+        console.error('GitHub OAuth: 未获取到授权URL');
+        return { 
+          success: false, 
+          error: '未获取到授权URL。请检查：1) Supabase是否启用了GitHub OAuth 2) GitHub OAuth应用是否配置正确 3) 回调URL是否已添加到Supabase配置中' 
+        };
+      }
+      
+      // 验证URL格式
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        console.error('GitHub OAuth: URL格式不正确:', url);
+        return { success: false, error: '获取到的URL格式不正确: ' + url };
+      }
+      
+      return { success: true, url: url };
     } catch (error) {
-        console.error('GitHub sign in failed:', error);
-      return { success: false, error: error.message };
+      console.error('GitHub sign in failed:', error);
+      return { success: false, error: error.message || '未知错误' };
     }
   }
 

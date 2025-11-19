@@ -179,16 +179,21 @@ function showEmailConfirmationMessage(email) {
 
 // 设置加载状态
 function setLoading(button, loading) {
+  if (!button) {
+    console.error('setLoading: button is null');
+    return;
+  }
+  
   const btnText = button.querySelector('.btn-text');
   const btnLoading = button.querySelector('.btn-loading');
   
   if (loading) {
-    btnText.style.display = 'none';
-    btnLoading.style.display = 'inline';
+    if (btnText) btnText.style.display = 'none';
+    if (btnLoading) btnLoading.style.display = 'inline';
     button.disabled = true;
   } else {
-    btnText.style.display = 'inline';
-    btnLoading.style.display = 'none';
+    if (btnText) btnText.style.display = 'inline';
+    if (btnLoading) btnLoading.style.display = 'none';
     button.disabled = false;
   }
 }
@@ -353,9 +358,14 @@ async function handleGitHubLogin() {
     if (!result.success) {
       showError(result.error || 'GitHub 登录失败');
       setLoading(githubLoginBtn, false);
+    } else {
+      // 如果成功，会打开浏览器，显示提示信息
+      showError('✓ 正在打开浏览器进行GitHub授权，请完成授权后返回应用...');
+      // 保持加载状态，等待回调
+      // 注意：按钮状态会在回调成功或失败时重置
     }
-    // 如果成功，会打开浏览器，等待回调
   } catch (error) {
+    console.error('GitHub登录异常:', error);
     showError('GitHub 登录失败：' + error.message);
     setLoading(githubLoginBtn, false);
   }
@@ -374,7 +384,9 @@ function checkOAuthCallback() {
   // 监听主进程发送的 OAuth 回调和邮箱确认回调
   window.electronAPI.auth.onOAuthCallback(async (url) => {
     try {
-      console.log('收到回调URL:', url);
+      // 重置GitHub登录按钮状态
+      setLoading(githubLoginBtn, false);
+      
       const result = await window.electronAPI.auth.handleOAuthCallback(url);
       if (result.success) {
         if (result.type === 'email_confirmation') {
@@ -385,7 +397,10 @@ function checkOAuthCallback() {
           }, 1000);
         } else {
           // OAuth登录成功
-          window.location.href = 'groups.html';
+          showError('✓ GitHub登录成功！正在跳转...');
+          setTimeout(() => {
+            window.location.href = 'groups.html';
+          }, 500);
         }
       } else {
         showError('登录失败：' + result.error);
@@ -393,6 +408,7 @@ function checkOAuthCallback() {
     } catch (error) {
       console.error('回调处理错误:', error);
       showError('登录失败：' + error.message);
+      setLoading(githubLoginBtn, false);
     }
   });
 }

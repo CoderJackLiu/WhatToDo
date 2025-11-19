@@ -47,7 +47,7 @@ npm run build
 
 ## ⚙️ Supabase 配置
 
-**重要**：为了邮箱确认功能正常工作，需要在 Supabase Dashboard 中配置：
+**重要**：为了邮箱确认和 GitHub 登录功能正常工作，需要在 Supabase Dashboard 中配置：
 
 ### 1. 配置重定向 URL
 
@@ -56,7 +56,51 @@ npm run build
 3. 在 "Redirect URLs" 中添加：`com.electron.todolist://auth/callback`
 4. 保存配置
 
-### 2. 邮件服务配置
+### 2. GitHub OAuth 配置
+
+#### 步骤 1：在 GitHub 上创建 OAuth App
+
+1. 登录 GitHub 账号
+2. 进入 **Settings**（设置）
+   - 点击右上角头像 > **Settings**
+   - 或直接访问：https://github.com/settings/profile
+3. 进入 **Developer settings**（开发者设置）
+   - 在左侧菜单最下方找到 **Developer settings**
+   - 或直接访问：https://github.com/settings/developers
+4. 创建新的 OAuth App
+   - 点击左侧菜单的 **OAuth Apps**
+   - 点击右上角的 **New OAuth App** 按钮
+5. 填写 OAuth App 信息：
+   - **Application name**（应用名称）：`TodoList`（可自定义）
+   - **Homepage URL**（主页URL）：`https://poxpogybhlsrwgnmtvsc.supabase.co`（你的 Supabase 项目 URL）
+   - **Authorization callback URL**（授权回调URL）：`https://poxpogybhlsrwgnmtvsc.supabase.co/auth/v1/callback`
+     - ⚠️ **重要**：这个 URL 必须是 `你的Supabase项目URL/auth/v1/callback` 格式
+   - 点击 **Register application**（注册应用）
+6. 获取 Client ID 和 Client Secret
+   - 创建成功后，会显示 **Client ID**（客户端ID）
+   - 点击 **Generate a new client secret**（生成新的客户端密钥）
+   - 复制并保存 **Client ID** 和 **Client Secret**（Secret 只显示一次，请妥善保存）
+
+#### 步骤 2：在 Supabase 中配置 GitHub OAuth
+
+1. 登录 Supabase Dashboard
+2. 进入 **Authentication** > **Providers**
+3. 找到 **GitHub** 选项，点击启用
+4. 填写配置信息：
+   - **Client ID (for OAuth)**：粘贴从 GitHub 复制的 Client ID
+   - **Client Secret (for OAuth)**：粘贴从 GitHub 复制的 Client Secret
+5. 点击 **Save**（保存）
+
+#### 步骤 3：验证配置
+
+配置完成后，GitHub OAuth 应该可以正常工作了。如果遇到问题，请检查：
+
+- ✅ GitHub OAuth App 的回调 URL 是否正确
+- ✅ Supabase 中的 Client ID 和 Secret 是否正确
+- ✅ Supabase 的 Redirect URLs 中是否包含 `com.electron.todolist://auth/callback`
+- ✅ Supabase 的 GitHub Provider 是否已启用
+
+### 3. 邮件服务配置
 
 **注意**：Supabase 默认的 SMTP 服务器主要用于测试，有以下限制：
 - 有严格的发送频率限制（每小时少量邮件）

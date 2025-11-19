@@ -1028,13 +1028,13 @@ body.dark-theme .theme-name {
 
 .settings-item {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  padding: 8px 6px;
+  padding: 10px 12px;
   border-radius: 4px;
   transition: all 0.2s ease;
   margin-bottom: 2px;
-  gap: 6px;
+  gap: 12px;
 }
 
 .settings-item:last-child {
@@ -1052,13 +1052,14 @@ body.dark-theme .theme-name {
   gap: 2px;
   flex: 1;
   min-width: 0;
+  justify-content: center;
 }
 
 .settings-item-label > span:first-child {
-  font-size: 11px;
+  font-size: 13px;
   color: #5c4f3a;
   font-weight: 500;
-  line-height: 1.3;
+  line-height: 1.4;
 }
 
 .settings-item-desc {
@@ -1072,7 +1073,7 @@ body.dark-theme .theme-name {
 .toggle-switch {
   position: relative;
   display: inline-block;
-  width: 38px;
+  width: 36px;
   height: 20px;
   flex-shrink: 0;
 }
@@ -1156,7 +1157,7 @@ body.dark-theme .theme-name {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 16px;
+  padding: 6px 14px;
   border: none;
   background: transparent;
   color: #5c4f3a;
@@ -1165,7 +1166,7 @@ body.dark-theme .theme-name {
   transition: all 0.2s ease;
   font-size: 12px;
   font-weight: 500;
-  min-width: 70px;
+  min-width: 65px;
   flex: 1;
 }
 
@@ -1204,7 +1205,7 @@ body.dark-theme .language-btn.active {
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  padding: 8px 12px;
+  padding: 6px 10px;
   border: none;
   background: transparent;
   color: #5c4f3a;
@@ -1212,7 +1213,7 @@ body.dark-theme .language-btn.active {
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 11px;
-  min-width: 60px;
+  min-width: 55px;
   flex: 1;
 }
 
@@ -1227,7 +1228,7 @@ body.dark-theme .language-btn.active {
 }
 
 .theme-mode-btn span:first-child {
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1;
 }
 
@@ -1666,7 +1667,7 @@ body.dark-theme .btn-logout:hover {
 
 .user-info-item .settings-item-label > span:first-child {
   font-weight: 600;
-  font-size: 11px;
+  font-size: 13px;
   color: #5c4f3a;
 }
 

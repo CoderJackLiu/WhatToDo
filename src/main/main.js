@@ -26,7 +26,7 @@ const debugLog = (...args) => {
   }
 };
 
-const { app, BrowserWindow, ipcMain, Menu, Tray } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, Tray, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -529,7 +529,19 @@ ipcMain.handle('auth-resend-confirmation', async (event, email) => {
 });
 
 ipcMain.handle('auth-sign-in-github', async () => {
-  return await authService.signInWithGitHub();
+  const result = await authService.signInWithGitHub();
+  
+  // 如果成功获取到URL，打开浏览器
+  if (result.success && result.url) {
+    try {
+      await shell.openExternal(result.url);
+    } catch (error) {
+      console.error('打开浏览器失败:', error);
+      return { success: false, error: '无法打开浏览器: ' + error.message };
+    }
+  }
+  
+  return result;
 });
 
 ipcMain.handle('auth-sign-out', async () => {
