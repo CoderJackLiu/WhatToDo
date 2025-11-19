@@ -1706,10 +1706,10 @@ body.dark-theme .dialog-overlay {
 /* 弹窗容器 */
 .custom-dialog {
   background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.1);
-  min-width: 320px;
-  max-width: 480px;
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.08);
+  min-width: 224px;
+  max-width: 336px;
   width: 90%;
   max-height: 90vh;
   overflow: hidden;
@@ -1720,15 +1720,15 @@ body.dark-theme .dialog-overlay {
 body.dark-theme .custom-dialog {
   background: #2d2d2d;
   border-color: #404040;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
 /* 弹窗内容 */
 .dialog-content {
-  padding: 24px;
+  padding: 17px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 11px;
 }
 
 /* 图标区域 */
@@ -1736,16 +1736,16 @@ body.dark-theme .custom-dialog {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   margin: 0 auto;
   flex-shrink: 0;
 }
 
 .dialog-icon svg {
-  width: 24px;
-  height: 24px;
+  width: 17px;
+  height: 17px;
 }
 
 .dialog-icon-info {
@@ -1795,10 +1795,10 @@ body.dark-theme .dialog-icon-success {
 }
 
 .dialog-title {
-  font-size: 18px;
+  font-size: 13px;
   font-weight: 600;
   color: #5c4f3a;
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
   line-height: 1.4;
 }
 
@@ -1807,10 +1807,10 @@ body.dark-theme .dialog-title {
 }
 
 .dialog-message {
-  font-size: 14px;
+  font-size: 11px;
   color: #7d6c4d;
   margin: 0;
-  line-height: 1.6;
+  line-height: 1.5;
   word-break: break-word;
   white-space: pre-wrap;
 }
@@ -1822,9 +1822,9 @@ body.dark-theme .dialog-message {
 /* 按钮区域 */
 .dialog-actions {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   justify-content: flex-end;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .dialog-actions:has(.dialog-btn-secondary) {
@@ -1832,14 +1832,14 @@ body.dark-theme .dialog-message {
 }
 
 .dialog-btn {
-  padding: 10px 20px;
+  padding: 7px 14px;
   border: none;
-  border-radius: 6px;
-  font-size: 14px;
+  border-radius: 4px;
+  font-size: 11px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-width: 80px;
+  min-width: 56px;
   flex: 1;
 }
 
@@ -1888,26 +1888,26 @@ body.dark-theme .dialog-btn-secondary:hover {
 /* 响应式调整 */
 @media (max-width: 480px) {
   .custom-dialog {
-    min-width: 280px;
+    min-width: 196px;
     width: 85%;
   }
 
   .dialog-content {
-    padding: 20px;
+    padding: 14px;
   }
 
   .dialog-title {
-    font-size: 16px;
+    font-size: 12px;
   }
 
   .dialog-message {
-    font-size: 13px;
+    font-size: 10px;
   }
 
   .dialog-btn {
-    padding: 8px 16px;
-    font-size: 13px;
-    min-width: 70px;
+    padding: 6px 12px;
+    font-size: 10px;
+    min-width: 49px;
   }
 }
 
