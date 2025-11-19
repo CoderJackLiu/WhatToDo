@@ -1,5 +1,34 @@
 # 更新日志
 
+## [2.1.0] - 2024-12-XX
+
+### 🔐 新增功能 - 持久登录
+
+#### ✨ 新增功能
+- **持久登录状态** - 登录后保持10天登录状态，无需每次启动重新登录
+- **加密 Session 存储** - 使用 AES-256-GCM 加密算法安全存储 session 信息
+- **Session 过期提示** - Session 过期时显示友好的提示信息，引导用户重新登录
+- **自动 Session 恢复** - 应用启动时自动恢复有效的 session，提升用户体验
+
+#### 🔧 技术改进
+- 新增 `session-service.js` - Session 加密存储服务
+- 优化 `auth-service.js` - 集成 session 保存和恢复逻辑
+- 优化 `main.js` - 启动时自动恢复 session
+- 优化 `login.js` - 添加 session 过期提示 UI
+- 更新 `preload.js` - 添加 session-expired 事件监听
+
+#### 📦 文件变更
+- 新增：`session-service.js` - Session 加密存储服务
+- 修改：`auth-service.js` - 添加 session 保存和恢复功能
+- 修改：`main.js` - 启动时恢复 session
+- 修改：`login.html` - 添加 session 过期提示 UI
+- 修改：`login.js` - 添加过期提示显示逻辑
+- 修改：`preload.js` - 添加 session-expired 事件 API
+- 修改：`styles.css` - 添加 session 过期提示样式
+- 修改：`package.json` - 版本号更新为 2.1.0
+
+---
+
 ## [2.0.0] - 2024-11-19
 
 ### 🚀 重大更新 - 性能优化
