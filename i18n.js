@@ -88,6 +88,11 @@ const i18n = {
       'detail.themePink': '粉色',
       
       // 消息提示
+      'message.confirm': '确认',
+      'message.error': '错误',
+      'message.warning': '警告',
+      'message.info': '提示',
+      'message.success': '成功',
       'message.logoutConfirm': '确定要退出登录吗？',
       'message.logoutFailed': '退出登录失败：',
       'message.unknownError': '未知错误',
@@ -183,6 +188,11 @@ const i18n = {
       'detail.themePink': 'Pink',
       
       // Messages
+      'message.confirm': 'Confirm',
+      'message.error': 'Error',
+      'message.warning': 'Warning',
+      'message.info': 'Information',
+      'message.success': 'Success',
       'message.logoutConfirm': 'Are you sure you want to logout?',
       'message.logoutFailed': 'Logout failed: ',
       'message.unknownError': 'Unknown error',

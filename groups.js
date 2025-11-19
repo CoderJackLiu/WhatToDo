@@ -218,17 +218,27 @@ function bindEvents() {
   
   // 退出登录
   logoutBtn.addEventListener('click', async () => {
-    if (confirm(i18n.t('message.logoutConfirm'))) {
+    const confirmed = await showConfirm(i18n.t('message.logoutConfirm'), {
+      title: i18n.t('message.confirm') || '确认',
+      type: 'warning'
+    });
+    if (confirmed) {
       try {
         const result = await window.electronAPI.auth.signOut();
         if (result.success) {
           window.location.href = 'login.html';
         } else {
-          alert(i18n.t('message.logoutFailed') + (result.error || i18n.t('message.unknownError')));
+          await showAlert(i18n.t('message.logoutFailed') + (result.error || i18n.t('message.unknownError')), {
+            title: i18n.t('message.error') || '错误',
+            type: 'error'
+          });
         }
       } catch (error) {
         console.error('退出登录失败:', error);
-        alert(i18n.t('message.logoutFailed') + error.message);
+        await showAlert(i18n.t('message.logoutFailed') + error.message, {
+          title: i18n.t('message.error') || '错误',
+          type: 'error'
+        });
       }
     }
   });
@@ -294,14 +304,20 @@ async function addGroup() {
       // 自动打开新创建的分组
       openGroup(result.data.id, '');
     } else {
-      alert(i18n.t('groups.createFailed') + (result.error || i18n.t('message.unknownError')));
+      await showAlert(i18n.t('groups.createFailed') + (result.error || i18n.t('message.unknownError')), {
+        title: i18n.t('message.error') || '错误',
+        type: 'error'
+      });
       // 失败后重新加载（回滚）
       await loadGroups();
       updateGroups();
     }
   } catch (error) {
     console.error('创建分组失败:', error);
-    alert(i18n.t('groups.createFailed') + error.message);
+    await showAlert(i18n.t('groups.createFailed') + error.message, {
+      title: i18n.t('message.error') || '错误',
+      type: 'error'
+    });
     await loadGroups();
     updateGroups();
   }
@@ -309,7 +325,11 @@ async function addGroup() {
 
 // 删除分组（云端）
 async function deleteGroup(id) {
-  if (!confirm(i18n.t('groups.deleteConfirm'))) {
+  const confirmed = await showConfirm(i18n.t('groups.deleteConfirm'), {
+    title: i18n.t('message.confirm') || '确认',
+    type: 'warning'
+  });
+  if (!confirmed) {
     return;
   }
   
@@ -325,14 +345,20 @@ async function deleteGroup(id) {
       await loadGroups();
       updateGroups();
     } else {
-      alert(i18n.t('groups.deleteFailed') + (result.error || i18n.t('message.unknownError')));
+      await showAlert(i18n.t('groups.deleteFailed') + (result.error || i18n.t('message.unknownError')), {
+        title: i18n.t('message.error') || '错误',
+        type: 'error'
+      });
       if (item) {
         item.classList.remove('removing');
       }
     }
   } catch (error) {
     console.error('删除分组失败:', error);
-    alert(i18n.t('groups.deleteFailed') + error.message);
+    await showAlert(i18n.t('groups.deleteFailed') + error.message, {
+      title: i18n.t('message.error') || '错误',
+      type: 'error'
+    });
     if (item) {
       item.classList.remove('removing');
     }

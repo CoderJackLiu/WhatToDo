@@ -470,7 +470,10 @@ async function addTodo() {
   
   if (!currentGroupId) {
     console.error('[group-detail] currentGroupId 为空，无法添加待办');
-    alert('错误：分组ID未设置，请重新打开分组');
+    await showAlert('错误：分组ID未设置，请重新打开分组', {
+      title: i18n.t('message.error') || '错误',
+      type: 'error'
+    });
     return;
   }
   
@@ -487,14 +490,20 @@ async function addTodo() {
       await loadGroupData();
     } else {
       console.error('[group-detail] 创建待办失败:', result.error);
-      alert(i18n.t('todos.addFailed') + (result.error || i18n.t('message.unknownError')));
+      await showAlert(i18n.t('todos.addFailed') + (result.error || i18n.t('message.unknownError')), {
+        title: i18n.t('message.error') || '错误',
+        type: 'error'
+      });
       // 失败后重新加载，data-service 会自动回滚缓存
       await loadGroupData();
     }
   } catch (error) {
     console.error('[group-detail] 添加待办异常:', error);
     console.error('[group-detail] 错误堆栈:', error.stack);
-    alert(i18n.t('todos.addFailed') + error.message);
+    await showAlert(i18n.t('todos.addFailed') + error.message, {
+      title: i18n.t('message.error') || '错误',
+      type: 'error'
+    });
     await loadGroupData();
   }
 }
@@ -536,14 +545,20 @@ async function deleteTodo(id) {
       // 重新加载待办列表
       await loadGroupData();
     } else {
-      alert(i18n.t('todos.deleteFailed') + (result.error || i18n.t('message.unknownError')));
+      await showAlert(i18n.t('todos.deleteFailed') + (result.error || i18n.t('message.unknownError')), {
+        title: i18n.t('message.error') || '错误',
+        type: 'error'
+      });
       if (item) {
         item.classList.remove('removing');
       }
     }
   } catch (error) {
     console.error('删除待办失败:', error);
-    alert(i18n.t('todos.deleteFailed') + error.message);
+    await showAlert(i18n.t('todos.deleteFailed') + error.message, {
+      title: i18n.t('message.error') || '错误',
+      type: 'error'
+    });
     if (item) {
       item.classList.remove('removing');
     }
@@ -636,11 +651,17 @@ async function clearCompleted() {
       // 重新加载待办列表
       await loadGroupData();
     } else {
-      alert(i18n.t('todos.clearFailed') + (result.error || i18n.t('message.unknownError')));
+      await showAlert(i18n.t('todos.clearFailed') + (result.error || i18n.t('message.unknownError')), {
+        title: i18n.t('message.error') || '错误',
+        type: 'error'
+      });
     }
   } catch (error) {
     console.error('清除失败:', error);
-    alert(i18n.t('todos.clearFailed') + error.message);
+    await showAlert(i18n.t('todos.clearFailed') + error.message, {
+      title: i18n.t('message.error') || '错误',
+      type: 'error'
+    });
   }
 }
 
