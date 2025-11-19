@@ -59,7 +59,7 @@ async function loadUserInfo() {
   }
 }
 
-// 加载分组数据（从云端）
+// 加载分组数据（从云端）- 包含待办事项预览
 async function loadGroups() {
   if (isLoading) return;
   
@@ -68,13 +68,32 @@ async function loadGroups() {
     const result = await window.electronAPI.data.loadGroups();
     if (result.success) {
       // 转换数据格式：将云端数据转换为本地格式
-      groups = result.data.map(g => ({
-        id: g.id,
-        name: g.name || '',
-        theme: g.theme || 'default',
-        todos: [], // 待办事项在分组详情页面加载
-        createdAt: new Date(g.created_at).getTime(),
-        updatedAt: new Date(g.updated_at).getTime()
+      groups = await Promise.all(result.data.map(async (g) => {
+        // 加载每个分组的待办事项（用于预览）
+        let todos = [];
+        try {
+          const todosResult = await window.electronAPI.data.loadTodos(g.id);
+          if (todosResult.success) {
+            todos = todosResult.data.map(t => ({
+              id: t.id,
+              text: t.text,
+              completed: t.completed,
+              createdAt: new Date(t.created_at).getTime(),
+              updatedAt: new Date(t.updated_at).getTime()
+            }));
+          }
+        } catch (error) {
+          console.error(`加载分组 ${g.id} 的待办失败:`, error);
+        }
+        
+        return {
+          id: g.id,
+          name: g.name || '',
+          theme: g.theme || 'default',
+          todos: todos, // 包含待办事项用于预览
+          createdAt: new Date(g.created_at).getTime(),
+          updatedAt: new Date(g.updated_at).getTime()
+        };
       }));
     } else {
       console.error('加载分组失败:', result.error);
@@ -280,19 +299,28 @@ function createGroupItem(group) {
   const themeColor = themeColors[theme] || themeColors.default;
   li.style.borderTopColor = themeColor.border;
   
-  // 分组内容预览（待办事项在详情页面加载，这里显示占位文本）
+  // 分组内容预览（显示待办事项预览）
   const content = document.createElement('div');
   content.className = 'group-content';
-  content.textContent = '点击查看待办事项';
+  const previewText = getGroupPreviewText(group.todos || []);
+  content.textContent = previewText;
   
   // 右侧内容容器
   const rightContent = document.createElement('div');
   rightContent.className = 'group-right-content';
   
-  // 待办数量徽章（暂时不显示，因为待办在详情页面加载）
+  // 待办数量徽章（显示实际数量）
   const count = document.createElement('span');
   count.className = 'group-count-badge';
-  count.textContent = '0';
+  const todosCount = (group.todos || []).length;
+  const activeCount = (group.todos || []).filter(t => !t.completed).length;
+  if (todosCount === 0) {
+    count.textContent = '0';
+  } else if (activeCount === todosCount) {
+    count.textContent = `${todosCount}`;
+  } else {
+    count.textContent = `${activeCount}/${todosCount}`;
+  }
   
   // 删除按钮（悬停时显示）
   const deleteBtn = document.createElement('button');
@@ -332,7 +360,26 @@ function updateGroupItem(li, group) {
   const themeColor = themeColors[theme] || themeColors.default;
   li.style.borderTopColor = themeColor.border;
   
-  // 注意：待办事项预览和数量在详情页面加载，这里不更新
+  // 更新待办事项预览
+  const content = li.querySelector('.group-content');
+  if (content) {
+    const previewText = getGroupPreviewText(group.todos || []);
+    content.textContent = previewText;
+  }
+  
+  // 更新待办数量徽章
+  const count = li.querySelector('.group-count-badge');
+  if (count) {
+    const todosCount = (group.todos || []).length;
+    const activeCount = (group.todos || []).filter(t => !t.completed).length;
+    if (todosCount === 0) {
+      count.textContent = '0';
+    } else if (activeCount === todosCount) {
+      count.textContent = `${todosCount}`;
+    } else {
+      count.textContent = `${activeCount}/${todosCount}`;
+    }
+  }
 }
 
 // 检查分组是否有变化
@@ -349,7 +396,20 @@ function hasGroupChanged(oldGroup, newGroup) {
     return true;
   }
   
-  // 注意：待办事项在详情页面加载，这里不比较
+  // 检查待办事项数量是否变化
+  const oldTodosCount = (oldGroup.todos || []).length;
+  const newTodosCount = (newGroup.todos || []).length;
+  if (oldTodosCount !== newTodosCount) {
+    return true;
+  }
+  
+  // 检查待办事项内容是否变化（简单比较：比较前5项的文本）
+  const oldTodos = (oldGroup.todos || []).slice(0, 5).map(t => t.text).join('|');
+  const newTodos = (newGroup.todos || []).slice(0, 5).map(t => t.text).join('|');
+  if (oldTodos !== newTodos) {
+    return true;
+  }
+  
   return false;
 }
 
