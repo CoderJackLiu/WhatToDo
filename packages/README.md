@@ -3,13 +3,13 @@
 ## Latest Build
 
 - **Version**: 2.1.0
-- **Commit**: [2dcb9a66](https://github.com/CoderJackLiu/WhatToDo/commit/2dcb9a66d34b2eeba192c6d1d902163ae0b54688)
+- **Commit**: [60c26476](https://github.com/CoderJackLiu/WhatToDo/commit/60c2647685d377818d3b6f3c2e91c83f355eb356)
 - **Branch**: main
-- **Build Time**: 2025-11-19T16:59:33.033Z
+- **Build Time**: 2025-11-19T17:11:35.344Z
 
 ### Download Link
 
-- [todolist-2.1.0-2dcb9a66.exe](https://github.com/CoderJackLiu/WhatToDo/releases/download/build-2.1.0-2dcb9a66/todolist-2.1.0-2dcb9a66.exe)
+- [todolist-2.1.0-60c26476.exe](https://github.com/CoderJackLiu/WhatToDo/releases/download/build-2.1.0-60c26476/todolist-2.1.0-60c26476.exe)
 
 ---
 
