@@ -1,4 +1,4 @@
-const { supabase } = require('./supabase-config');
+const { supabase } = require('../config/supabase-config');
 const cacheService = require('./cache-service');
 
 // 全局日志开关

@@ -26,11 +26,11 @@ function log(message, color = 'reset') {
 const requiredFiles = {
   '核心代码文件': [
     'package.json',
-    'main.js',
-    'preload.js',
-    'index.html',
-    'styles.css',
-    'renderer.js'
+    'src/main/main.js',
+    'src/main/preload.js',
+    'src/renderer/pages/index.html',
+    'src/renderer/styles/styles.css',
+    'src/renderer/scripts/renderer.js'
   ],
   '配置文件': [
     '.gitignore',

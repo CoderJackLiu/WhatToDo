@@ -108,7 +108,7 @@ npm run build
 
 ## 📦 依赖说明
 
-详细的依赖信息请参考 [DEPENDENCIES.md](./DEPENDENCIES.md)
+详细的依赖信息请参考 [DEPENDENCIES.md](./docs/DEPENDENCIES.md)
 
 **生产依赖**：
 - `@supabase/supabase-js` - Supabase 客户端库

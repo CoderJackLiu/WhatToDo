@@ -1,4 +1,4 @@
-const { supabase } = require('./supabase-config');
+const { supabase } = require('../config/supabase-config');
 const sessionService = require('./session-service');
 
 class AuthService {

@@ -30,8 +30,8 @@ const { app, BrowserWindow, ipcMain, Menu, Tray } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const authService = require('./auth-service');
-const dataService = require('./data-service');
+const authService = require('../services/auth-service');
+const dataService = require('../services/data-service');
 
 // 设置缓存目录到用户可写的位置，避免权限错误
 const userCacheDir = path.join(os.homedir(), '.electron-todolist-cache');
@@ -66,7 +66,7 @@ function ensureSettingsFile() {
 
 // 创建主窗口（分组列表或登录界面）
 function createWindow(initialFile = null) {
-  const iconPath = path.join(__dirname, 'build', 'icon.ico');
+  const iconPath = path.join(__dirname, '../../build/icon.ico');
   let windowIcon;
   
   try {
@@ -98,7 +98,7 @@ function createWindow(initialFile = null) {
   if (initialFile) {
     mainWindow.loadFile(initialFile);
     // 如果是登录页面，调整窗口大小
-    if (initialFile === 'login.html') {
+    if (initialFile && initialFile.includes('login.html')) {
       mainWindow.setSize(380, 520);
       mainWindow.setMinimumSize(360, 450);
     }
@@ -137,7 +137,7 @@ function createGroupWindow(groupId, groupName) {
     return;
   }
 
-  const iconPath = path.join(__dirname, 'build', 'icon.ico');
+  const iconPath = path.join(__dirname, '../../build/icon.ico');
   let windowIcon;
   
   try {
@@ -196,7 +196,7 @@ function createGroupWindow(groupId, groupName) {
     console.warn('[main] 分组窗口无响应');
   });
 
-  groupWindow.loadFile('group-detail.html');
+  groupWindow.loadFile(path.join(__dirname, '../renderer/pages/group-detail.html'));
 
   // 窗口加载完成后发送分组信息（保留groupName字段，但不显示）
   groupWindow.webContents.on('did-finish-load', () => {
@@ -243,7 +243,7 @@ function createTray() {
   const { nativeImage } = require('electron');
   
   // 使用应用图标
-  const iconPath = path.join(__dirname, 'build', 'icon.ico');
+  const iconPath = path.join(__dirname, '../../build/icon.ico');
   let trayIcon;
   
   try {
@@ -314,7 +314,7 @@ async function checkAuthAndLoad() {
     if (restoreResult.success && restoreResult.restored) {
       // Session 恢复成功，加载主界面
       debugLog('[main] Session 恢复成功，加载主界面');
-      mainWindow.loadFile('groups.html');
+      mainWindow.loadFile(path.join(__dirname, '../renderer/pages/groups.html'));
       return;
     }
     
@@ -335,11 +335,11 @@ async function checkAuthAndLoad() {
     if (result.success && result.session) {
       // 已登录，加载主界面
       debugLog('[main] 当前有有效 session，加载主界面');
-      mainWindow.loadFile('groups.html');
+      mainWindow.loadFile(path.join(__dirname, '../renderer/pages/groups.html'));
     } else {
       // 未登录，加载登录界面
       debugLog('[main] 未登录，加载登录界面');
-      mainWindow.loadFile('login.html');
+      mainWindow.loadFile(path.join(__dirname, '../renderer/pages/login.html'));
       // 调整登录窗口大小
       setTimeout(() => {
         mainWindow.setSize(380, 520);
@@ -465,7 +465,7 @@ app.whenReady().then(() => {
       
       // 如果登出，跳转到登录页面
       if (event === 'SIGNED_OUT') {
-        mainWindow.loadFile('login.html');
+        mainWindow.loadFile(path.join(__dirname, '../renderer/pages/login.html'));
         // 调整登录窗口大小
         setTimeout(() => {
           mainWindow.setSize(380, 520);
@@ -474,7 +474,7 @@ app.whenReady().then(() => {
       }
       // 如果登录，跳转到主页面
       else if (event === 'SIGNED_IN' && session) {
-        mainWindow.loadFile('groups.html');
+        mainWindow.loadFile(path.join(__dirname, '../renderer/pages/groups.html'));
         // 恢复主窗口大小
         setTimeout(() => {
           mainWindow.setSize(500, 650);
