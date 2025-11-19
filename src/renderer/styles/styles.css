@@ -217,6 +217,19 @@ body.group-detail .titlebar-button:hover {
   position: relative;
 }
 
+.titlebar-button.settings img {
+  width: 12px;
+  height: 12px;
+  display: block;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+body.dark-theme .titlebar-button.settings img {
+  filter: brightness(0) invert(1);
+  opacity: 0.85;
+}
+
 .titlebar-button.settings:hover {
   background: rgba(125, 108, 77, 0.1);
 }
