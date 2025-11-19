@@ -18,7 +18,7 @@ class DataService {
       if (error) throw error;
       return { success: true, data: data || [] };
     } catch (error) {
-      console.error('加载分组失败:', error);
+      console.error('Failed to load groups:', error);
       return { success: false, error: error.message, data: [] };
     }
   }
@@ -52,7 +52,7 @@ class DataService {
       if (error) throw error;
       return { success: true, data };
     } catch (error) {
-      console.error('创建分组失败:', error);
+      console.error('Failed to create group:', error);
       return { success: false, error: error.message };
     }
   }
@@ -70,7 +70,7 @@ class DataService {
       if (error) throw error;
       return { success: true, data };
     } catch (error) {
-      console.error('更新分组失败:', error);
+      console.error('Failed to update group:', error);
       return { success: false, error: error.message };
     }
   }
@@ -86,7 +86,7 @@ class DataService {
       if (error) throw error;
       return { success: true };
     } catch (error) {
-      console.error('删除分组失败:', error);
+      console.error('Failed to delete group:', error);
       return { success: false, error: error.message };
     }
   }
@@ -106,7 +106,7 @@ class DataService {
       if (error) throw error;
       return { success: true };
     } catch (error) {
-      console.error('重新排序分组失败:', error);
+      console.error('Failed to reorder groups:', error);
       return { success: false, error: error.message };
     }
   }
@@ -125,7 +125,7 @@ class DataService {
       if (error) throw error;
       return { success: true, data: data || [] };
     } catch (error) {
-      console.error('加载待办失败:', error);
+      console.error('Failed to load todos:', error);
       return { success: false, error: error.message, data: [] };
     }
   }
@@ -157,7 +157,7 @@ class DataService {
       if (error) throw error;
       return { success: true, data };
     } catch (error) {
-      console.error('创建待办失败:', error);
+      console.error('Failed to create todo:', error);
       return { success: false, error: error.message };
     }
   }
@@ -175,7 +175,7 @@ class DataService {
       if (error) throw error;
       return { success: true, data };
     } catch (error) {
-      console.error('更新待办失败:', error);
+      console.error('Failed to update todo:', error);
       return { success: false, error: error.message };
     }
   }
@@ -191,7 +191,7 @@ class DataService {
       if (error) throw error;
       return { success: true };
     } catch (error) {
-      console.error('删除待办失败:', error);
+      console.error('Failed to delete todo:', error);
       return { success: false, error: error.message };
     }
   }
@@ -207,7 +207,7 @@ class DataService {
       if (error) throw error;
       return { success: true };
     } catch (error) {
-      console.error('批量删除待办失败:', error);
+      console.error('Failed to delete todos in batch:', error);
       return { success: false, error: error.message };
     }
   }
@@ -227,7 +227,7 @@ class DataService {
       if (error) throw error;
       return { success: true };
     } catch (error) {
-      console.error('重新排序待办失败:', error);
+      console.error('Failed to reorder todos:', error);
       return { success: false, error: error.message };
     }
   }

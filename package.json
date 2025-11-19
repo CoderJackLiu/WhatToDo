@@ -1,10 +1,10 @@
 {
   "name": "electron-todolist",
   "version": "1.0.3",
-  "description": "支持分组管理的 TodoList 桌面应用",
+  "description": "TodoList Desktop App with Group Management",
   "main": "main.js",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=16.0.0"
   },
   "scripts": {
     "start": "electron .",

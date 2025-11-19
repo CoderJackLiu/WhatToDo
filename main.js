@@ -46,7 +46,7 @@ function createWindow(initialFile = null) {
       windowIcon = iconPath;
     }
   } catch (error) {
-    console.error('加载窗口图标失败:', error.message);
+    console.error('Failed to load window icon:', error.message);
   }
   
   mainWindow = new BrowserWindow({
@@ -103,7 +103,7 @@ function createGroupWindow(groupId, groupName) {
       windowIcon = iconPath;
     }
   } catch (error) {
-    console.error('加载窗口图标失败:', error.message);
+    console.error('Failed to load group window icon:', error.message);
   }
   
   const groupWindow = new BrowserWindow({
@@ -175,7 +175,7 @@ function createTray() {
       trayIcon = nativeImage.createEmpty();
     }
   } catch (error) {
-    console.error('加载托盘图标失败:', error.message);
+    console.error('Failed to load tray icon:', error.message);
     // 如果加载失败，使用空图标
     trayIcon = nativeImage.createEmpty();
   }
@@ -230,7 +230,7 @@ async function checkAuthAndLoad() {
       mainWindow.loadFile('login.html');
     }
   } catch (error) {
-    console.error('检查认证状态失败:', error);
+    console.error('Failed to check auth status:', error);
     // 出错时加载登录界面
     mainWindow.loadFile('login.html');
   }
@@ -276,7 +276,7 @@ if (!gotTheLock) {
 
 // 处理协议 URL（OAuth 回调和邮箱确认回调）
 function handleProtocolUrl(url) {
-  console.log('收到协议URL:', url);
+  console.log('Received protocol URL:', url);
   
   // 如果窗口还未创建，等待窗口创建完成
   if (!mainWindow || mainWindow.isDestroyed()) {
@@ -315,7 +315,7 @@ app.whenReady().then(() => {
     try {
       fs.mkdirSync(userCacheDir, { recursive: true });
     } catch (error) {
-      console.warn('创建缓存目录失败:', error.message);
+      console.warn('Failed to create cache directory:', error.message);
     }
   }
   

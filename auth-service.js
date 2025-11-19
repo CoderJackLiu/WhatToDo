@@ -8,7 +8,7 @@ class AuthService {
   // 邮箱注册
   async signUp(email, password) {
     try {
-      console.log('开始注册，邮箱:', email);
+      console.log('Starting sign up, email:', email);
       
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -19,11 +19,11 @@ class AuthService {
       });
       
       if (error) {
-        console.error('注册错误:', error);
+        console.error('Sign up error:', error);
         throw error;
       }
       
-      console.log('注册返回数据:', data);
+      console.log('Sign up response data:', data);
       
       // 检查用户是否需要邮箱确认
       const needsConfirmation = data.user && !data.user.email_confirmed_at;
@@ -31,7 +31,7 @@ class AuthService {
       // 检查是否有 session（某些配置下注册后可能直接有 session）
       const hasSession = data.session !== null && data.session !== undefined;
       
-      console.log('注册结果:', {
+      console.log('Sign up result:', {
         needsConfirmation,
         hasSession,
         userEmail: data.user?.email,
@@ -45,8 +45,8 @@ class AuthService {
         hasSession: hasSession || false
       };
     } catch (error) {
-      console.error('注册失败:', error);
-      console.error('错误详情:', {
+      console.error('Sign up failed:', error);
+      console.error('Error details:', {
         message: error.message,
         status: error.status,
         code: error.code
@@ -77,7 +77,7 @@ class AuthService {
       }
       return { success: true, data };
     } catch (error) {
-      console.error('登录失败:', error);
+        console.error('Sign in failed:', error);
       return { 
         success: false, 
         error: error.message,
@@ -89,7 +89,7 @@ class AuthService {
   // 重新发送确认邮件
   async resendConfirmationEmail(email) {
     try {
-      console.log('尝试重新发送确认邮件到:', email);
+      console.log('Attempting to resend confirmation email to:', email);
       
       const { data, error } = await supabase.auth.resend({
         type: 'signup',
@@ -100,15 +100,15 @@ class AuthService {
       });
       
       if (error) {
-        console.error('Supabase resend 错误:', error);
+        console.error('Supabase resend error:', error);
         throw error;
       }
       
-      console.log('邮件发送成功，返回数据:', data);
+      console.log('Email sent successfully, response data:', data);
       return { success: true, data };
     } catch (error) {
-      console.error('重新发送确认邮件失败:', error);
-      console.error('错误详情:', {
+      console.error('Failed to resend confirmation email:', error);
+      console.error('Error details:', {
         message: error.message,
         status: error.status,
         code: error.code
@@ -141,7 +141,7 @@ class AuthService {
       if (error) throw error;
       return { success: true, data };
     } catch (error) {
-      console.error('GitHub 登录失败:', error);
+        console.error('GitHub sign in failed:', error);
       return { success: false, error: error.message };
     }
   }
@@ -153,7 +153,7 @@ class AuthService {
       if (error) throw error;
       return { success: true };
     } catch (error) {
-      console.error('登出失败:', error);
+        console.error('Sign out failed:', error);
       return { success: false, error: error.message };
     }
   }
@@ -191,7 +191,7 @@ class AuthService {
   // 处理 OAuth 回调和邮箱确认回调
   async handleOAuthCallback(url) {
     try {
-      console.log('处理回调URL:', url);
+      console.log('Processing callback URL:', url);
       
       // 解析 URL（处理自定义协议）
       let urlObj;
@@ -253,7 +253,7 @@ class AuthService {
           if (verifyResult.error) throw verifyResult.error;
           return { success: true, data: verifyResult.data, type: 'email_confirmation' };
         } catch (verifyError) {
-          console.warn('verifyOtp失败，尝试其他方法:', verifyError);
+          console.warn('verifyOtp failed, trying alternative method:', verifyError);
           // 如果verifyOtp失败，可能token已经在URL中，尝试直接设置session
         }
       }
@@ -271,7 +271,7 @@ class AuthService {
       
       return { success: false, error: '缺少认证参数' };
     } catch (error) {
-      console.error('回调处理失败:', error);
+      console.error('Callback handling failed:', error);
       return { success: false, error: error.message };
     }
   }
