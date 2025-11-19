@@ -3,13 +3,13 @@
 ## Latest Build
 
 - **Version**: 2.0.0
-- **Commit**: [47729105](https://github.com/CoderJackLiu/WhatToDo/commit/477291051b5934d3dccf059a344aedd44778c1b0)
+- **Commit**: [a321de65](https://github.com/CoderJackLiu/WhatToDo/commit/a321de65fa3029d592f95005c9b39e0b085ecd6b)
 - **Branch**: feature/email-confirmation-auth
-- **Build Time**: 2025-11-19T07:01:03.715Z
+- **Build Time**: 2025-11-19T07:04:12.203Z
 
 ### Download Link
 
-- [todolist-2.0.0-47729105.exe](https://github.com/CoderJackLiu/WhatToDo/releases/download/build-2.0.0-47729105/todolist-2.0.0-47729105.exe)
+- [todolist-2.0.0-a321de65.exe](https://github.com/CoderJackLiu/WhatToDo/releases/download/build-2.0.0-a321de65/todolist-2.0.0-a321de65.exe)
 
 ---
 
