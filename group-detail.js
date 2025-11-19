@@ -52,61 +52,61 @@ async function init() {
     debugLog('[group-detail] window.electronAPI 可用');
     debugLog('[group-detail] window.electronAPI.onGroupInfo 是否存在:', typeof window.electronAPI.onGroupInfo !== 'undefined');
     
-    // 初始化多语言
+  // 初始化多语言
     debugLog('[group-detail] 开始初始化语言');
-    await initLanguage();
+  await initLanguage();
     debugLog('[group-detail] 语言初始化完成');
-    
-    // 加载主题模式设置
+  
+  // 加载主题模式设置
     debugLog('[group-detail] 开始加载主题模式');
-    await loadThemeMode();
+  await loadThemeMode();
     debugLog('[group-detail] 主题模式加载完成');
-    
-    // 默认显示标题栏和底部（新建/打开分组时）
-    showTitlebarAndFooter();
-    
-    // 接收分组信息
+  
+  // 默认显示标题栏和底部（新建/打开分组时）
+  showTitlebarAndFooter();
+  
+  // 接收分组信息
     debugLog('[group-detail] 设置分组信息监听器');
-    window.electronAPI.onGroupInfo((data) => {
+  window.electronAPI.onGroupInfo((data) => {
       debugLog('[group-detail] ========== 收到分组信息 ==========');
       debugLog('[group-detail] 接收到的数据:', data);
       debugLog('[group-detail] data.groupId:', data.groupId);
       debugLog('[group-detail] data.groupName:', data.groupName);
       
-      currentGroupId = data.groupId;
-      currentGroupName = data.groupName; // 保留数据，但不显示
+    currentGroupId = data.groupId;
+    currentGroupName = data.groupName; // 保留数据，但不显示
       debugLog('[group-detail] 设置 currentGroupId:', currentGroupId);
       debugLog('[group-detail] 设置 currentGroupName:', currentGroupName);
       
       if (windowTitle) {
-        windowTitle.textContent = i18n.t('detail.title'); // 使用固定标题
+    windowTitle.textContent = i18n.t('detail.title'); // 使用固定标题
         debugLog('[group-detail] 窗口标题已更新');
       } else {
         console.error('[group-detail] ❌ windowTitle 元素不存在');
       }
       
       debugLog('[group-detail] 准备调用 loadGroupData()');
-      loadGroupData();
+    loadGroupData();
       
-      // 确保显示标题栏和底部
-      showTitlebarAndFooter();
+    // 确保显示标题栏和底部
+    showTitlebarAndFooter();
       debugLog('[group-detail] ========== 分组信息处理完成 ==========');
-    });
+  });
     debugLog('[group-detail] 分组信息监听器设置完成');
-    
-    // 绑定事件
+  
+  // 绑定事件
     debugLog('[group-detail] 开始绑定事件');
-    bindEvents();
+  bindEvents();
     debugLog('[group-detail] 事件绑定完成');
-    
-    // 监听主题变化
-    window.electronAPI.onThemeChanged(async () => {
-      await loadThemeMode();
-      // 重新应用分组主题颜色（标题栏）
-      if (currentTheme) {
-        applyTheme(currentTheme);
-      }
-    });
+  
+  // 监听主题变化
+  window.electronAPI.onThemeChanged(async () => {
+    await loadThemeMode();
+    // 重新应用分组主题颜色（标题栏）
+    if (currentTheme) {
+      applyTheme(currentTheme);
+    }
+  });
     
     debugLog('[group-detail] init() 函数执行完成');
   } catch (error) {
@@ -266,11 +266,11 @@ async function loadGroupData() {
       todos = todosResult.data.map(t => {
         debugLog('[group-detail] 转换待办项:', t);
         return {
-          id: t.id,
-          text: t.text,
-          completed: t.completed,
-          createdAt: new Date(t.created_at).getTime(),
-          updatedAt: new Date(t.updated_at).getTime()
+        id: t.id,
+        text: t.text,
+        completed: t.completed,
+        createdAt: new Date(t.created_at).getTime(),
+        updatedAt: new Date(t.updated_at).getTime()
         };
       });
       
@@ -1104,7 +1104,7 @@ if (document.readyState === 'loading') {
   debugLog('[group-detail] 文档还在加载中，等待 DOMContentLoaded');
   document.addEventListener('DOMContentLoaded', () => {
     debugLog('[group-detail] DOMContentLoaded 事件触发，调用 init()');
-    init();
+init();
   });
 } else {
   debugLog('[group-detail] 文档已加载，立即调用 init()');

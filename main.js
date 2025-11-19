@@ -195,7 +195,7 @@ function createGroupWindow(groupId, groupName) {
   groupWindow.webContents.on('unresponsive', () => {
     console.warn('[main] 分组窗口无响应');
   });
-  
+
   groupWindow.loadFile('group-detail.html');
 
   // 窗口加载完成后发送分组信息（保留groupName字段，但不显示）
@@ -204,7 +204,7 @@ function createGroupWindow(groupId, groupName) {
     
     // 延迟发送，确保脚本已加载
     setTimeout(() => {
-      groupWindow.webContents.send('group-info', { groupId, groupName: groupName || '' });
+    groupWindow.webContents.send('group-info', { groupId, groupName: groupName || '' });
       debugLog('[main] 分组信息已发送');
     }, 100);
     
@@ -620,7 +620,7 @@ ipcMain.on('renderer-log', (event, level, message) => {
 ipcMain.on('open-group', (event, { groupId, groupName }) => {
   debugLog('[main] 收到打开分组请求, groupId:', groupId, 'groupName:', groupName);
   try {
-    createGroupWindow(groupId, groupName);
+  createGroupWindow(groupId, groupName);
     debugLog('[main] 分组窗口创建成功');
   } catch (error) {
     console.error('[main] 创建分组窗口失败:', error);
