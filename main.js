@@ -69,10 +69,24 @@ function createWindow(initialFile = null) {
   // 根据认证状态加载不同页面
   if (initialFile) {
     mainWindow.loadFile(initialFile);
+    // 如果是登录页面，调整窗口大小
+    if (initialFile === 'login.html') {
+      mainWindow.setSize(420, 520);
+      mainWindow.setMinimumSize(380, 450);
+    }
   } else {
     // 检查认证状态
     checkAuthAndLoad();
   }
+  
+  // 监听页面加载完成，如果是登录页面则调整窗口大小
+  mainWindow.webContents.on('did-finish-load', () => {
+    const url = mainWindow.webContents.getURL();
+    if (url.includes('login.html')) {
+      mainWindow.setSize(420, 520);
+      mainWindow.setMinimumSize(380, 450);
+    }
+  });
 
   // 关闭窗口时最小化到托盘
   mainWindow.on('close', (event) => {
@@ -228,11 +242,21 @@ async function checkAuthAndLoad() {
     } else {
       // 未登录，加载登录界面
       mainWindow.loadFile('login.html');
+      // 调整登录窗口大小
+      setTimeout(() => {
+        mainWindow.setSize(420, 520);
+        mainWindow.setMinimumSize(380, 450);
+      }, 100);
     }
   } catch (error) {
     console.error('Failed to check auth status:', error);
     // 出错时加载登录界面
     mainWindow.loadFile('login.html');
+    // 调整登录窗口大小
+    setTimeout(() => {
+      mainWindow.setSize(420, 520);
+      mainWindow.setMinimumSize(380, 450);
+    }, 100);
   }
 }
 
@@ -344,10 +368,20 @@ app.whenReady().then(() => {
       // 如果登出，跳转到登录页面
       if (event === 'SIGNED_OUT') {
         mainWindow.loadFile('login.html');
+        // 调整登录窗口大小
+        setTimeout(() => {
+          mainWindow.setSize(420, 520);
+          mainWindow.setMinimumSize(380, 450);
+        }, 100);
       }
       // 如果登录，跳转到主页面
       else if (event === 'SIGNED_IN' && session) {
         mainWindow.loadFile('groups.html');
+        // 恢复主窗口大小
+        setTimeout(() => {
+          mainWindow.setSize(500, 650);
+          mainWindow.setMinimumSize(400, 500);
+        }, 100);
       }
     }
   });

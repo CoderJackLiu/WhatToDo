@@ -44,6 +44,8 @@ body.dark-theme.group-detail {
   background: #fef7dc;
   color: #7d6c4d;
   padding: 0 12px;
+  margin: 0;
+  margin-bottom: 0;
   -webkit-app-region: drag;
   transition: transform 0.3s ease, background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
   border-bottom: 1px solid #e8dcc3;
@@ -1130,12 +1132,17 @@ body.dark-theme .settings-item-desc {
 /* ========== 登录界面样式 ========== */
 .login-container {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  padding: 20px;
+  flex-direction: column;
+  justify-content: stretch;
+  align-items: stretch;
+  height: 100vh; /* 填满整个窗口 */
+  padding: 0;
   background-color: #fefaed;
   transition: background-color 0.3s ease;
+  margin: 0;
+  overflow-y: auto;
+  box-sizing: border-box;
+  -webkit-app-region: drag; /* 整个登录界面可拖动 */
 }
 
 body.dark-theme .login-container {
@@ -1144,12 +1151,18 @@ body.dark-theme .login-container {
 
 .login-box {
   width: 100%;
-  max-width: 400px;
+  height: 100%;
   background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  padding: 40px;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 32px 28px;
   transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow-y: auto;
+  -webkit-app-region: no-drag; /* 登录框内容不可拖动，但可以点击 */
 }
 
 body.dark-theme .login-box {
@@ -1159,14 +1172,15 @@ body.dark-theme .login-box {
 
 .login-header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
 
 .login-header h1 {
-  font-size: 32px;
+  font-size: 26px;
   margin-bottom: 8px;
   color: #5c4f3a;
   transition: color 0.3s ease;
+  font-weight: 600;
 }
 
 body.dark-theme .login-header h1 {
@@ -1175,8 +1189,9 @@ body.dark-theme .login-header h1 {
 
 .login-subtitle {
   color: #888;
-  font-size: 14px;
+  font-size: 12px;
   transition: color 0.3s ease;
+  margin: 0;
 }
 
 body.dark-theme .login-subtitle {
@@ -1184,7 +1199,7 @@ body.dark-theme .login-subtitle {
 }
 
 .login-form {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .form-group {
@@ -1193,14 +1208,15 @@ body.dark-theme .login-subtitle {
 
 .form-input {
   width: 100%;
-  padding: 12px 16px;
+  padding: 10px 14px;
   border: 1px solid #e8dcc3;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 6px;
+  font-size: 13px;
   background: #fffef8;
   color: #5c4f3a;
   transition: all 0.2s ease;
   box-sizing: border-box;
+  -webkit-app-region: no-drag; /* 输入框可正常交互 */
 }
 
 .form-input:focus {
@@ -1222,10 +1238,10 @@ body.dark-theme .form-input:focus {
 
 .btn {
   width: 100%;
-  padding: 12px 24px;
+  padding: 10px 20px;
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 6px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1233,6 +1249,7 @@ body.dark-theme .form-input:focus {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  -webkit-app-region: no-drag; /* 按钮可正常点击 */
 }
 
 .btn-primary {
@@ -1282,7 +1299,7 @@ body.dark-theme .btn-social:hover {
 .form-footer {
   margin-top: 16px;
   text-align: center;
-  font-size: 14px;
+  font-size: 12px;
   color: #888;
 }
 
@@ -1295,6 +1312,7 @@ body.dark-theme .form-footer {
   text-decoration: none;
   margin-left: 4px;
   transition: color 0.2s ease;
+  -webkit-app-region: no-drag; /* 链接可正常点击 */
 }
 
 .form-footer a:hover {
@@ -1313,11 +1331,12 @@ body.dark-theme .form-footer a:hover {
 .error-message {
   background: #fee;
   color: #c33;
-  padding: 12px 16px;
-  border-radius: 8px;
+  padding: 10px 12px;
+  border-radius: 6px;
   margin-bottom: 16px;
-  font-size: 14px;
+  font-size: 12px;
   border: 1px solid #fcc;
+  line-height: 1.5;
 }
 
 body.dark-theme .error-message {
@@ -1329,16 +1348,16 @@ body.dark-theme .error-message {
 .email-confirmation-message {
   background: #fff9e6;
   color: #856404;
-  padding: 16px;
-  border-radius: 8px;
+  padding: 12px;
+  border-radius: 6px;
   margin-bottom: 16px;
-  font-size: 14px;
+  font-size: 12px;
   border: 1px solid #ffd700;
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
 .email-confirmation-message p {
-  margin: 8px 0;
+  margin: 5px 0;
 }
 
 .email-confirmation-message a {
@@ -1380,9 +1399,9 @@ body.dark-theme .email-confirmation-message a:hover {
   display: flex;
   align-items: center;
   text-align: center;
-  margin: 24px 0;
+  margin: 16px 0;
   color: #888;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 body.dark-theme .divider {
