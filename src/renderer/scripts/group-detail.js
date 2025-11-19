@@ -17,9 +17,11 @@ const todoList = document.getElementById('todo-list');
 const todoCount = document.getElementById('todo-count');
 const clearCompletedBtn = document.getElementById('clear-completed');
 const pinBtn = document.getElementById('pin-btn');
+const pinBtnImg = pinBtn ? pinBtn.querySelector('img') : null;
 const minimizeBtn = document.getElementById('minimize-btn');
 const closeBtn = document.getElementById('close-btn');
 const menuBtn = document.getElementById('menu-btn');
+const homeBtn = document.getElementById('home-btn');
 const themeMenu = document.getElementById('theme-menu');
 const windowTitle = document.getElementById('window-title');
 const titlebar = document.querySelector('.titlebar');
@@ -52,6 +54,19 @@ async function init() {
     debugLog('[group-detail] window.electronAPI 可用');
     debugLog('[group-detail] window.electronAPI.onGroupInfo 是否存在:', typeof window.electronAPI.onGroupInfo !== 'undefined');
     
+  // 设置置顶按钮图片路径（确保路径正确）
+    if (pinBtnImg) {
+      // 使用相对于当前 HTML 文件的路径
+      pinBtnImg.src = '../assets/Top.png';
+      pinBtnImg.onerror = function() {
+        console.error('[group-detail] 置顶按钮图片加载失败，路径:', this.src);
+        // 如果相对路径失败，尝试使用绝对路径
+        const currentPath = window.location.pathname;
+        const basePath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+        this.src = basePath + '/../assets/Top.png';
+      };
+    }
+  
   // 初始化多语言
     debugLog('[group-detail] 开始初始化语言');
   await initLanguage();
@@ -384,15 +399,20 @@ function bindEvents() {
     }
   });
   
+  // 打开主界面按钮
+  homeBtn.addEventListener('click', () => {
+    window.electronAPI.showMainWindow();
+  });
+
   // 窗口控制
   pinBtn.addEventListener('click', () => {
     window.electronAPI.toggleAlwaysOnTop();
   });
-  
+
   minimizeBtn.addEventListener('click', () => {
     window.electronAPI.minimizeWindow();
   });
-  
+
   closeBtn.addEventListener('click', () => {
     window.electronAPI.closeWindow();
   });

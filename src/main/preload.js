@@ -99,6 +99,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   minimizeWindow: () => ipcRenderer.send('minimize-window'),
   closeWindow: () => ipcRenderer.send('close-window'),
+  showMainWindow: () => ipcRenderer.send('show-main-window'),
   toggleAlwaysOnTop: () => ipcRenderer.send('toggle-always-on-top'),
   onAlwaysOnTopChanged: (callback) => ipcRenderer.on('always-on-top-changed', (event, isOnTop) => callback(isOnTop)),
   

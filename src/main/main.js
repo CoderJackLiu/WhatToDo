@@ -660,6 +660,20 @@ ipcMain.on('close-window', (event) => {
   }
 });
 
+// 显示主窗口
+ipcMain.on('show-main-window', () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) {
+      mainWindow.restore();
+    }
+    mainWindow.show();
+    mainWindow.focus();
+  } else {
+    // 如果主窗口不存在，创建一个新的
+    createWindow();
+  }
+});
+
 // 切换窗口置顶状态
 ipcMain.on('toggle-always-on-top', (event) => {
   const window = BrowserWindow.fromWebContents(event.sender);

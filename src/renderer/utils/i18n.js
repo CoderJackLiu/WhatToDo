@@ -77,6 +77,7 @@ const i18n = {
       
       // 分组详情页面
       'detail.title': 'TodoList',
+      'detail.openMain': '打开主界面',
       'detail.moreOptions': '更多选项',
       'detail.pinWindow': '置顶窗口',
       'detail.selectTheme': '选择颜色风格',
@@ -177,6 +178,7 @@ const i18n = {
       
       // Group detail page
       'detail.title': 'TodoList',
+      'detail.openMain': 'Open Main Window',
       'detail.moreOptions': 'More Options',
       'detail.pinWindow': 'Pin Window',
       'detail.selectTheme': 'Select Color Theme',

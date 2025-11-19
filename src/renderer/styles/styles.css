@@ -173,6 +173,12 @@ body.group-detail .titlebar-button:hover {
   object-fit: contain;
   display: block;
   pointer-events: none;
+  opacity: 1;
+}
+
+.titlebar-button.pin img[src=""],
+.titlebar-button.pin img:not([src]) {
+  display: none;
 }
 
 .titlebar-button.pin:hover {
@@ -186,6 +192,15 @@ body.group-detail .titlebar-button:hover {
 
 .titlebar-button.pin.active:hover {
   background: rgba(125, 108, 77, 0.2);
+}
+
+/* 打开主界面按钮 */
+.titlebar-button.home {
+  position: relative;
+}
+
+.titlebar-button.home:hover {
+  background: rgba(125, 108, 77, 0.1);
 }
 
 /* 菜单按钮 */
@@ -923,6 +938,36 @@ body.dark-theme .group-count-badge {
   font-size: 11px;
   color: #5c4f3a;
   font-weight: 400;
+}
+
+/* 夜间模式下的主题菜单样式 */
+body.dark-theme .theme-menu {
+  background: #2d2d2d;
+  border-color: #404040;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-theme .theme-menu-header {
+  color: #e0e0e0;
+  border-bottom-color: #404040;
+}
+
+body.dark-theme .theme-option:hover {
+  background: #353535;
+}
+
+body.dark-theme .theme-option.active {
+  border-color: #a89875;
+  background: #353535;
+}
+
+body.dark-theme .theme-preview {
+  border-color: #404040;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-theme .theme-name {
+  color: #e0e0e0;
 }
 
 /* ========================================
