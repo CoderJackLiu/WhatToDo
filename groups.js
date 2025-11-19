@@ -88,24 +88,16 @@ async function loadGroups() {
   }
 }
 
-// 订阅分组变化（实时同步）
+// 订阅分组变化（实时同步）- 优化：减少不必要的重新加载
 function subscribeToGroups() {
   if (groupsSubscription) {
     return; // 已经订阅
   }
   
   groupsSubscription = window.electronAPI.data.subscribeToGroups((payload) => {
-    // 处理实时更新
-    if (payload.eventType === 'INSERT') {
-      // 新增分组
-      loadGroups().then(() => updateGroups());
-    } else if (payload.eventType === 'UPDATE') {
-      // 更新分组
-      loadGroups().then(() => updateGroups());
-    } else if (payload.eventType === 'DELETE') {
-      // 删除分组
-      loadGroups().then(() => updateGroups());
-    }
+    // 实时更新已由 data-service 处理缓存同步
+    // 这里只需刷新UI（从已更新的缓存读取）
+    loadGroups().then(() => updateGroups());
   });
 }
 
@@ -174,12 +166,13 @@ function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
-// 添加分组（云端）
+// 添加分组（云端）- 优化：乐观更新，立即响应
 async function addGroup() {
   try {
+    // 乐观更新：data-service 会立即更新缓存
     const result = await window.electronAPI.data.createGroup('', 'default');
     if (result.success) {
-      // 重新加载分组列表
+      // 从缓存重新加载分组列表
       await loadGroups();
       updateGroups();
       
@@ -187,10 +180,15 @@ async function addGroup() {
       openGroup(result.data.id, '');
     } else {
       alert('创建分组失败：' + (result.error || '未知错误'));
+      // 失败后重新加载（回滚）
+      await loadGroups();
+      updateGroups();
     }
   } catch (error) {
     console.error('创建分组失败:', error);
     alert('创建分组失败：' + error.message);
+    await loadGroups();
+    updateGroups();
   }
 }
 
@@ -470,6 +468,19 @@ function renderGroups() {
 let draggedItem = null;
 let dragStartPos = null;
 
+// 防抖函数 - 用于优化拖拽排序
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
 function handleDragStart(e) {
   // 如果点击的是分组内容区域，不启动拖动
   if (e.target.classList.contains('group-content')) {
@@ -506,19 +517,10 @@ function handleDragOver(e) {
   }
 }
 
-async function handleDrop(e) {
-  e.stopPropagation();
-  e.preventDefault();
-  
-  // 更新数据顺序
-  const items = Array.from(groupList.querySelectorAll('.group-item'));
-  const newGroupIds = items.map(item => {
-    return item.getAttribute('data-group-id');
-  }).filter(id => id);
-  
-  // 更新云端数据顺序
+// 创建防抖的排序更新函数（300ms延迟）
+const debouncedReorderGroups = debounce(async (groupIds) => {
   try {
-    const result = await window.electronAPI.data.reorderGroups(newGroupIds);
+    const result = await window.electronAPI.data.reorderGroups(groupIds);
     if (result.success) {
       // 重新加载分组列表
       await loadGroups();
@@ -529,6 +531,20 @@ async function handleDrop(e) {
   } catch (error) {
     console.error('重新排序失败:', error);
   }
+}, 300);
+
+async function handleDrop(e) {
+  e.stopPropagation();
+  e.preventDefault();
+  
+  // 更新数据顺序
+  const items = Array.from(groupList.querySelectorAll('.group-item'));
+  const newGroupIds = items.map(item => {
+    return item.getAttribute('data-group-id');
+  }).filter(id => id);
+  
+  // 使用防抖优化，避免拖动过程中频繁请求
+  debouncedReorderGroups(newGroupIds);
 }
 
 function handleDragEnd(e) {

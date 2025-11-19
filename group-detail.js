@@ -135,7 +135,7 @@ async function loadGroupData() {
   }
 }
 
-// 订阅待办变化（实时同步）
+// 订阅待办变化（实时同步）- 优化：减少不必要的重新加载
 let todosSubscription = null;
 function subscribeToTodos() {
   if (!currentGroupId) return;
@@ -147,17 +147,9 @@ function subscribeToTodos() {
   }
   
   todosSubscription = window.electronAPI.data.subscribeToTodos(currentGroupId, (payload) => {
-    // 处理实时更新
-    if (payload.eventType === 'INSERT') {
-      // 新增待办
-      loadGroupData();
-    } else if (payload.eventType === 'UPDATE') {
-      // 更新待办
-      loadGroupData();
-    } else if (payload.eventType === 'DELETE') {
-      // 删除待办
-      loadGroupData();
-    }
+    // 实时更新已由 data-service 处理缓存同步
+    // 这里只需刷新UI（从已更新的缓存读取）
+    loadGroupData();
   });
 }
 
@@ -270,7 +262,7 @@ function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
-// 添加待办事项（云端）
+// 添加待办事项（云端）- 优化：乐观更新，立即响应
 async function addTodo() {
   const text = todoInput.value.trim();
   
@@ -281,36 +273,44 @@ async function addTodo() {
   todoInput.value = '';
   
   try {
+    // 乐观更新：data-service 会立即更新缓存，这里立即刷新UI
     const result = await window.electronAPI.data.createTodo(currentGroupId, text);
     if (result.success) {
-      // 重新加载待办列表（实时同步会自动更新，但这里立即更新UI）
+      // 从缓存重新加载（已包含新添加的待办）
       await loadGroupData();
     } else {
       alert('添加待办失败：' + (result.error || '未知错误'));
+      // 失败后重新加载，data-service 会自动回滚缓存
+      await loadGroupData();
     }
   } catch (error) {
     console.error('添加待办失败:', error);
     alert('添加待办失败：' + error.message);
+    await loadGroupData();
   }
 }
 
-// 切换完成状态（云端）
+// 切换完成状态（云端）- 优化：乐观更新
 async function toggleTodo(id) {
   const todo = todos.find(t => t.id === id);
   if (!todo) return;
   
   try {
+    // 乐观更新：data-service 会立即更新缓存
     const result = await window.electronAPI.data.updateTodo(id, {
       completed: !todo.completed
     });
     if (result.success) {
-      // 重新加载待办列表
+      // 从缓存重新加载
       await loadGroupData();
     } else {
       console.error('更新待办失败:', result.error);
+      // 失败后重新加载（回滚）
+      await loadGroupData();
     }
   } catch (error) {
     console.error('更新待办失败:', error);
+    await loadGroupData();
   }
 }
 
@@ -509,6 +509,19 @@ let draggedTodoItem = null;
 let dragStartPos = null;
 let isDragging = false;
 
+// 防抖函数 - 用于优化拖拽排序
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
 function handleTodoDragStart(e) {
   // 如果点击的是文本区域，不启动拖动（允许双击编辑）
   if (e.target.classList.contains('todo-text')) {
@@ -549,6 +562,21 @@ function handleTodoDragOver(e) {
   }
 }
 
+// 创建防抖的排序更新函数（300ms延迟）
+const debouncedReorderTodos = debounce(async (groupId, todoIds) => {
+  try {
+    const result = await window.electronAPI.data.reorderTodos(groupId, todoIds);
+    if (result.success) {
+      // 重新加载待办列表
+      await loadGroupData();
+    } else {
+      console.error('重新排序失败:', result.error);
+    }
+  } catch (error) {
+    console.error('重新排序失败:', error);
+  }
+}, 300);
+
 async function handleTodoDrop(e) {
   e.stopPropagation();
   e.preventDefault();
@@ -559,20 +587,11 @@ async function handleTodoDrop(e) {
     return item.getAttribute('data-id');
   }).filter(id => id);
   
-  // 更新云端数据顺序
+  // 使用防抖函数更新云端数据顺序
   if (!currentGroupId) return;
   
-  try {
-    const result = await window.electronAPI.data.reorderTodos(currentGroupId, newTodoIds);
-    if (result.success) {
-      // 重新加载待办列表
-      await loadGroupData();
-    } else {
-      console.error('重新排序失败:', result.error);
-    }
-  } catch (error) {
-    console.error('重新排序失败:', error);
-  }
+  // 使用防抖优化，避免拖动过程中频繁请求
+  debouncedReorderTodos(currentGroupId, newTodoIds);
 }
 
 function handleTodoDragEnd(e) {

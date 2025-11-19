@@ -1,7 +1,7 @@
 {
   "name": "electron-todolist",
-  "version": "1.0.3",
-  "description": "TodoList Desktop App with Group Management",
+  "version": "2.0.0",
+  "description": "TodoList Desktop App with Group Management and Performance Optimization",
   "main": "main.js",
   "engines": {
     "node": ">=16.0.0"
