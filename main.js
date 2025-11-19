@@ -71,8 +71,8 @@ function createWindow(initialFile = null) {
     mainWindow.loadFile(initialFile);
     // 如果是登录页面，调整窗口大小
     if (initialFile === 'login.html') {
-      mainWindow.setSize(420, 520);
-      mainWindow.setMinimumSize(380, 450);
+      mainWindow.setSize(380, 520);
+      mainWindow.setMinimumSize(360, 450);
     }
   } else {
     // 检查认证状态
@@ -83,8 +83,8 @@ function createWindow(initialFile = null) {
   mainWindow.webContents.on('did-finish-load', () => {
     const url = mainWindow.webContents.getURL();
     if (url.includes('login.html')) {
-      mainWindow.setSize(420, 520);
-      mainWindow.setMinimumSize(380, 450);
+      mainWindow.setSize(380, 520);
+      mainWindow.setMinimumSize(360, 450);
     }
   });
 
@@ -244,8 +244,8 @@ async function checkAuthAndLoad() {
       mainWindow.loadFile('login.html');
       // 调整登录窗口大小
       setTimeout(() => {
-        mainWindow.setSize(420, 520);
-        mainWindow.setMinimumSize(380, 450);
+        mainWindow.setSize(380, 520);
+        mainWindow.setMinimumSize(360, 450);
       }, 100);
     }
   } catch (error) {
@@ -254,8 +254,8 @@ async function checkAuthAndLoad() {
     mainWindow.loadFile('login.html');
     // 调整登录窗口大小
     setTimeout(() => {
-      mainWindow.setSize(420, 520);
-      mainWindow.setMinimumSize(380, 450);
+      mainWindow.setSize(380, 520);
+      mainWindow.setMinimumSize(360, 450);
     }, 100);
   }
 }
@@ -370,8 +370,8 @@ app.whenReady().then(() => {
         mainWindow.loadFile('login.html');
         // 调整登录窗口大小
         setTimeout(() => {
-          mainWindow.setSize(420, 520);
-          mainWindow.setMinimumSize(380, 450);
+          mainWindow.setSize(380, 520);
+          mainWindow.setMinimumSize(360, 450);
         }, 100);
       }
       // 如果登录，跳转到主页面
