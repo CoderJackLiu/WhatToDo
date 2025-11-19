@@ -177,7 +177,34 @@ function subscribeToGroups() {
   groupsSubscription = window.electronAPI.data.subscribeToGroups((payload) => {
     // 实时更新已由 data-service 处理缓存同步
     // 这里只需刷新UI（从已更新的缓存读取）
-    loadGroups().then(() => updateGroups());
+    
+    // 如果是UPDATE事件且主题字段变化，直接更新DOM元素以确保颜色立即同步
+    if (payload.eventType === 'UPDATE' && payload.new && payload.new.theme !== undefined) {
+      const groupId = payload.new.id;
+      const newTheme = payload.new.theme || 'default';
+      
+      console.log('[groups] 检测到主题更新:', { groupId, newTheme });
+      
+      // 直接更新对应的DOM元素（立即生效）
+      const groupItem = document.querySelector(`[data-group-id="${groupId}"]`);
+      if (groupItem) {
+        const themeColor = themeColors[newTheme] || themeColors.default;
+        groupItem.style.borderTopColor = themeColor.border;
+        console.log('[groups] 已更新DOM元素主题颜色:', themeColor.border);
+      } else {
+        console.warn('[groups] 未找到对应的分组项:', groupId);
+      }
+      
+      // 然后刷新数据并更新UI（确保数据同步）
+      loadGroups().then(() => {
+        // 刷新后再次确保主题颜色正确（因为updateGroups会总是更新主题颜色）
+        updateGroups();
+        console.log('[groups] 分组列表已刷新');
+      });
+    } else {
+      // 其他变化，正常刷新
+      loadGroups().then(() => updateGroups());
+    }
   });
 }
 
@@ -257,6 +284,14 @@ function bindEvents() {
   
   closeBtn.addEventListener('click', () => {
     window.electronAPI.closeWindow();
+  });
+  
+  // 窗口获得焦点时刷新分组列表，确保主题颜色同步
+  window.addEventListener('focus', () => {
+    // 延迟一点，避免频繁刷新
+    setTimeout(() => {
+      loadGroups().then(() => updateGroups());
+    }, 100);
   });
 }
 
@@ -582,7 +617,17 @@ function updateGroups() {
     
     if (existingItem) {
       // 分组已存在，检查是否需要更新
-      if (hasGroupChanged(oldGroup, group)) {
+      // 特别检查主题是否变化，确保主题颜色能及时更新
+      const themeChanged = oldGroup && (oldGroup.theme || 'default') !== (group.theme || 'default');
+      
+      // 总是更新主题颜色，确保颜色同步（即使其他数据没变化）
+      const currentTheme = group.theme || 'default';
+      const themeColor = themeColors[currentTheme] || themeColors.default;
+      // 直接更新主题颜色，不比较（因为DOM中的颜色格式可能不同）
+      existingItem.style.borderTopColor = themeColor.border;
+      
+      // 检查其他变化
+      if (hasGroupChanged(oldGroup, group) || themeChanged) {
         updateGroupItem(existingItem, group);
       }
       
