@@ -1,6 +1,6 @@
 {
   "name": "electron-todolist",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "支持分组管理的 TodoList 桌面应用",
   "main": "main.js",
   "engines": {

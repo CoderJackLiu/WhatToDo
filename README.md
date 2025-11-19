@@ -2,7 +2,7 @@
 
 一个功能强大的 TodoList 桌面应用，支持分组管理和多窗口操作。
 
-![Version](https://img.shields.io/badge/version-2.3-blue)
+![Version](https://img.shields.io/badge/version-1.0.3-blue)
 ![Electron](https://img.shields.io/badge/Electron-27.0.0-green)
 ![License](https://img.shields.io/badge/license-MIT-orange)
 
