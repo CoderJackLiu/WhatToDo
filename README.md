@@ -72,10 +72,6 @@ For detailed configuration steps, see [docs/DOMAIN_DNS_SETUP.md](./docs/DOMAIN_D
 
 ## 📚 Documentation
 
-- [Installation Guide](./docs/INSTALL_v2.0.0.md)
-- [Dependencies](./docs/DEPENDENCIES.md)
-- [Performance Optimization](./docs/PERFORMANCE_OPTIMIZATION.md)
-- [Email Troubleshooting](./docs/EMAIL_TROUBLESHOOTING.md)
 - [Changelog](./docs/CHANGELOG.md)
 
 ## 📜 License

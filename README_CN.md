@@ -72,10 +72,6 @@ npm run build
 
 ## 📚 相关文档
 
-- [安装指南](./docs/INSTALL_v2.0.0.md)
-- [依赖说明](./docs/DEPENDENCIES.md)
-- [性能优化](./docs/PERFORMANCE_OPTIMIZATION.md)
-- [邮件问题排查](./docs/EMAIL_TROUBLESHOOTING.md)
 - [更新日志](./docs/CHANGELOG.md)
 
 ## 📜 许可证
