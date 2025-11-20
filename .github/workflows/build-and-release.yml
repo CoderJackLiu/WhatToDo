@@ -170,12 +170,20 @@ jobs:
           
           # Publish to GitHub Packages
           cd "$PACKAGE_DIR"
-          npm publish || {
-            echo "❌ Publish failed"
-            exit 1
-          }
-          echo "✅ Uploaded to GitHub Packages: @${OWNER}/${PACKAGE_NAME_WITH_VERSION}@${VERSION_SUFFIX}"
-          echo "🔗 View at: https://github.com/${{ github.repository }}/packages"
+          if npm publish 2>&1 | tee publish.log; then
+            echo "✅ Uploaded to GitHub Packages: @${OWNER}/${PACKAGE_NAME_WITH_VERSION}@${VERSION_SUFFIX}"
+            echo "🔗 View at: https://github.com/${{ github.repository }}/packages"
+          else
+            # Check if error is due to existing version (409 Conflict)
+            if grep -q "409 Conflict\|Cannot publish over existing version" publish.log; then
+              echo "⚠️ Package version already exists, skipping publish"
+              echo "ℹ️ This is normal when re-publishing the same tag"
+            else
+              echo "❌ Publish failed with unexpected error"
+              cat publish.log
+              exit 1
+            fi
+          fi
           cd ..
           rm -rf "$PACKAGE_DIR"
 
