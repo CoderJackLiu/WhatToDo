@@ -6,6 +6,8 @@ on:
     branches:
       - '**'
     tags:
+      - 'v*.*.*'
+      - 'v*.*'
       - 'v*'
 
 permissions:
