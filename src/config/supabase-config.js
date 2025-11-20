@@ -13,8 +13,8 @@ const { createClient } = require('@supabase/supabase-js');
 // Restore original console.warn after import
 console.warn = originalConsoleWarn;
 
-const SUPABASE_URL = 'https://poxpogybhlsrwgnmtvsc.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBveHBvZ3liaGxzcndnbm10dnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwOTIwNzEsImV4cCI6MjA3ODY2ODA3MX0.0TNcta7uR7QmRiNLeuio_PiywaO5Ly-0k8x6USLiBRM';
+const SUPABASE_URL = 'https://sbp-vbbjm5so9tgqif2o.supabase.opentrust.net';
+const SUPABASE_ANON_KEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYW5vbiIsInJlZiI6InNicC12YmJqbTVzbzl0Z3FpZjJvIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3NjM2MTc4OTEsImV4cCI6MjA3OTE5Mzg5MX0.SbxadtwQ3dihwYiLzApl_odCEOCWuucLPBzDLKhqRj0';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {

@@ -81,8 +81,8 @@ function bindEvents() {
     if (e.key === 'Enter') handleRegister();
   });
 
-  // GitHub 登录
-  githubLoginBtn.addEventListener('click', handleGitHubLogin);
+  // GitHub 登录（界面已注释，保留功能代码）
+  // githubLoginBtn.addEventListener('click', handleGitHubLogin);
 
   // 重新发送确认邮件
   resendConfirmationLink.addEventListener('click', async (e) => {
@@ -384,8 +384,10 @@ function checkOAuthCallback() {
   // 监听主进程发送的 OAuth 回调和邮箱确认回调
   window.electronAPI.auth.onOAuthCallback(async (url) => {
     try {
-      // 重置GitHub登录按钮状态
-      setLoading(githubLoginBtn, false);
+      // 重置GitHub登录按钮状态（如果按钮存在）
+      if (githubLoginBtn) {
+        setLoading(githubLoginBtn, false);
+      }
       
       const result = await window.electronAPI.auth.handleOAuthCallback(url);
       if (result.success) {
@@ -408,7 +410,9 @@ function checkOAuthCallback() {
     } catch (error) {
       console.error('回调处理错误:', error);
       showError('登录失败：' + error.message);
-      setLoading(githubLoginBtn, false);
+      if (githubLoginBtn) {
+        setLoading(githubLoginBtn, false);
+      }
     }
   });
 }
