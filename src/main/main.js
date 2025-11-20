@@ -78,6 +78,20 @@ function createWindow(initialFile = null) {
     console.error('Failed to load window icon:', error.message);
   }
   
+  // 检查是否有分组窗口要打开，如果有则默认隐藏主窗口
+  let showMainWindow = true;
+  try {
+    if (fs.existsSync(settingsPath)) {
+      const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+      const hasAutoStartGroups = settings.autoStartGroups && Array.isArray(settings.autoStartGroups) && settings.autoStartGroups.length > 0;
+      if (hasAutoStartGroups) {
+        showMainWindow = false; // 有分组窗口要打开，默认隐藏主窗口
+      }
+    }
+  } catch (e) {
+    // 忽略错误，使用默认值
+  }
+  
   mainWindow = new BrowserWindow({
     width: 500,
     height: 650,
@@ -88,6 +102,7 @@ function createWindow(initialFile = null) {
     resizable: true,
     backgroundColor: '#f5f5f5',
     icon: windowIcon,
+    show: showMainWindow, // 根据是否有分组窗口决定是否显示
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -131,7 +146,7 @@ function createWindow(initialFile = null) {
 }
 
 // 创建分组窗口
-function createGroupWindow(groupId, groupName, alwaysOnTop = false) {
+function createGroupWindow(groupId, groupName, alwaysOnTop = false, windowBounds = null) {
   // 如果该分组窗口已打开，则聚焦
   if (groupWindows.has(groupId)) {
     const existingWindow = groupWindows.get(groupId);
@@ -154,9 +169,17 @@ function createGroupWindow(groupId, groupName, alwaysOnTop = false) {
     console.error('Failed to load group window icon:', error.message);
   }
   
-  const groupWindow = new BrowserWindow({
-    width: 400,
-    height: 600,
+  // 使用保存的位置和大小，如果没有则使用默认值
+  const defaultWidth = 400;
+  const defaultHeight = 600;
+  const width = windowBounds?.width || defaultWidth;
+  const height = windowBounds?.height || defaultHeight;
+  const x = windowBounds?.x;
+  const y = windowBounds?.y;
+  
+  const windowOptions = {
+    width: width,
+    height: height,
     minWidth: 350,
     minHeight: 400,
     frame: false,
@@ -172,7 +195,15 @@ function createGroupWindow(groupId, groupName, alwaysOnTop = false) {
       nodeIntegration: false,
       additionalArguments: [`--group-id=${groupId}`]
     }
-  });
+  };
+  
+  // 如果指定了位置，设置窗口位置
+  if (x !== undefined && y !== undefined) {
+    windowOptions.x = x;
+    windowOptions.y = y;
+  }
+  
+  const groupWindow = new BrowserWindow(windowOptions);
 
   debugLog('[main] 创建分组窗口, groupId:', groupId, 'groupName:', groupName);
   
@@ -238,17 +269,31 @@ function createGroupWindow(groupId, groupName, alwaysOnTop = false) {
     console.error('[main] 分组窗口加载失败:', errorCode, errorDescription);
   });
 
+  // 监听窗口移动和调整大小，实时保存位置和大小
+  let saveTimeout = null;
+  const debouncedSaveBounds = () => {
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
+    }
+    saveTimeout = setTimeout(() => {
+      saveAllOpenGroupWindows();
+    }, 500); // 防抖，500ms后保存
+  };
+  
+  groupWindow.on('moved', debouncedSaveBounds);
+  groupWindow.on('resized', debouncedSaveBounds);
+  
   groupWindow.on('closed', () => {
-    // 保存窗口关闭时的置顶状态
-    saveGroupWindowState(groupId, groupWindow.isAlwaysOnTop());
     groupWindows.delete(groupId);
+    // 窗口关闭时保存所有打开的窗口状态
+    saveAllOpenGroupWindows();
   });
 
   groupWindows.set(groupId, groupWindow);
 }
 
-// 保存分组窗口状态（置顶状态）
-function saveGroupWindowState(groupId, alwaysOnTop) {
+// 保存所有当前打开的分组窗口状态
+function saveAllOpenGroupWindows() {
   try {
     let settings = { autoStart: false, themeMode: 'light', language: 'zh-CN', autoStartGroups: [] };
     if (fs.existsSync(settingsPath)) {
@@ -259,21 +304,24 @@ function saveGroupWindowState(groupId, alwaysOnTop) {
       }
     }
     
-    // 确保 autoStartGroups 存在
-    if (!settings.autoStartGroups) {
-      settings.autoStartGroups = [];
-    }
-    
-    // 查找并更新对应分组的置顶状态
-    const groupIndex = settings.autoStartGroups.findIndex(g => g.groupId === groupId);
-    if (groupIndex >= 0) {
-      settings.autoStartGroups[groupIndex].alwaysOnTop = alwaysOnTop;
-    } else {
-      // 如果分组不在列表中，添加它（但只在用户手动设置时才添加）
-      // 这里不自动添加，避免用户未选择的分组被添加到启动列表
-    }
+    // 保存当前所有打开的分组窗口及其置顶状态、位置和大小
+    settings.autoStartGroups = [];
+    groupWindows.forEach((window, groupId) => {
+      if (window && !window.isDestroyed()) {
+        const bounds = window.getBounds();
+        settings.autoStartGroups.push({
+          groupId: groupId,
+          alwaysOnTop: window.isAlwaysOnTop(),
+          x: bounds.x,
+          y: bounds.y,
+          width: bounds.width,
+          height: bounds.height
+        });
+      }
+    });
     
     fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+    debugLog('[main] 已保存打开的窗口状态:', settings.autoStartGroups.length, '个窗口');
   } catch (error) {
     console.error('保存分组窗口状态失败:', error);
   }
@@ -292,8 +340,12 @@ async function loadAutoStartGroups() {
     }
     
     const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
-    if (!settings.autoStartGroups || !Array.isArray(settings.autoStartGroups) || settings.autoStartGroups.length === 0) {
-      autoStartGroupsLoaded = true; // 标记为已加载（即使没有分组）
+    const hasAutoStartGroups = settings.autoStartGroups && Array.isArray(settings.autoStartGroups) && settings.autoStartGroups.length > 0;
+    const isAutoStartEnabled = settings.autoStart === true;
+    
+    // 如果没有分组窗口要打开，且没有设置开机启动，直接返回
+    if (!hasAutoStartGroups && !isAutoStartEnabled) {
+      autoStartGroupsLoaded = true;
       return;
     }
     
@@ -317,35 +369,81 @@ async function loadAutoStartGroups() {
       return;
     }
     
-    // 加载分组数据以获取分组名称
-    const groupsResult = await dataService.loadGroups();
-    if (!groupsResult.success) {
-      console.error('加载分组失败，无法打开开机启动分组');
-      autoStartGroupsLoaded = true;
-      return;
-    }
-    
-    // 延迟打开分组窗口，确保主窗口已创建
-    setTimeout(() => {
-      settings.autoStartGroups.forEach((groupConfig) => {
-        const groupId = groupConfig.groupId;
-        const alwaysOnTop = groupConfig.alwaysOnTop || false;
-        
-        // 验证分组是否存在
-        const group = groupsResult.data.find(g => g.id === groupId);
-        if (group) {
-          const groupName = group.name || '';
-          createGroupWindow(groupId, groupName, alwaysOnTop);
-          debugLog('[main] 打开开机启动分组:', groupId, '置顶:', alwaysOnTop);
-        } else {
-          console.warn(`开机启动分组 ${groupId} 不存在，已跳过`);
+    // 如果有分组窗口要打开
+    if (hasAutoStartGroups) {
+      // 加载分组数据以获取分组名称
+      const groupsResult = await dataService.loadGroups();
+      if (!groupsResult.success) {
+        console.error('加载分组失败，无法打开开机启动分组');
+        autoStartGroupsLoaded = true;
+        // 如果加载失败，显示主窗口
+        if (isAutoStartEnabled && mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.show();
         }
-      });
-      autoStartGroupsLoaded = true; // 标记为已加载
-    }, 1500); // 延迟1.5秒，确保主窗口和认证已完成
+        return;
+      }
+      
+      // 延迟打开分组窗口，确保主窗口已创建
+      setTimeout(() => {
+        let openedCount = 0;
+        settings.autoStartGroups.forEach((groupConfig) => {
+          const groupId = groupConfig.groupId;
+          const alwaysOnTop = groupConfig.alwaysOnTop || false;
+          
+          // 获取保存的窗口位置和大小
+          const windowBounds = {
+            x: groupConfig.x,
+            y: groupConfig.y,
+            width: groupConfig.width,
+            height: groupConfig.height
+          };
+          
+          // 验证分组是否存在
+          const group = groupsResult.data.find(g => g.id === groupId);
+          if (group) {
+            const groupName = group.name || '';
+            createGroupWindow(groupId, groupName, alwaysOnTop, windowBounds);
+            openedCount++;
+            debugLog('[main] 打开开机启动分组:', groupId, '置顶:', alwaysOnTop, '位置:', windowBounds);
+          } else {
+            console.warn(`开机启动分组 ${groupId} 不存在，已跳过`);
+          }
+        });
+        
+        // 如果有分组窗口打开，隐藏主窗口
+        if (openedCount > 0 && mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.hide();
+          debugLog('[main] 已打开', openedCount, '个分组窗口，隐藏主窗口');
+        } else if (isAutoStartEnabled && mainWindow && !mainWindow.isDestroyed()) {
+          // 如果没有成功打开任何分组窗口，但设置了开机启动，显示主窗口
+          mainWindow.show();
+          debugLog('[main] 没有分组窗口打开，显示主窗口');
+        }
+        
+        autoStartGroupsLoaded = true; // 标记为已加载
+      }, 1500); // 延迟1.5秒，确保主窗口和认证已完成
+    } else {
+      // 没有分组窗口要打开，但设置了开机启动，显示主窗口
+      if (isAutoStartEnabled && mainWindow && !mainWindow.isDestroyed()) {
+        setTimeout(() => {
+          mainWindow.show();
+          debugLog('[main] 设置了开机启动但没有分组窗口，显示主窗口');
+        }, 500);
+      }
+      autoStartGroupsLoaded = true;
+    }
   } catch (error) {
     console.error('加载开机启动分组失败:', error);
     autoStartGroupsLoaded = true; // 即使失败也标记为已加载，避免重复尝试
+    // 出错时，如果设置了开机启动，显示主窗口
+    try {
+      const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+      if (settings.autoStart === true && mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.show();
+      }
+    } catch (e) {
+      // 忽略错误
+    }
   }
 }
 
@@ -635,6 +733,8 @@ app.on('window-all-closed', (e) => {
 // 退出前清理
 app.on('before-quit', () => {
   app.isQuitting = true;
+  // 退出前保存所有打开的窗口状态
+  saveAllOpenGroupWindows();
 });
 
 // ========== IPC 通信处理 ==========
@@ -753,10 +853,33 @@ ipcMain.on('renderer-log', (event, level, message) => {
 });
 
 // 打开分组窗口
-ipcMain.on('open-group', (event, { groupId, groupName, alwaysOnTop }) => {
-  debugLog('[main] 收到打开分组请求, groupId:', groupId, 'groupName:', groupName, 'alwaysOnTop:', alwaysOnTop);
+ipcMain.on('open-group', (event, { groupId, groupName }) => {
+  debugLog('[main] 收到打开分组请求, groupId:', groupId, 'groupName:', groupName);
   try {
-    createGroupWindow(groupId, groupName, alwaysOnTop);
+    // 尝试加载保存的窗口位置和大小
+    let savedBounds = null;
+    try {
+      if (fs.existsSync(settingsPath)) {
+        const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+        const savedGroup = settings.autoStartGroups?.find(g => g.groupId === groupId);
+        if (savedGroup && savedGroup.x !== undefined && savedGroup.y !== undefined) {
+          savedBounds = {
+            x: savedGroup.x,
+            y: savedGroup.y,
+            width: savedGroup.width,
+            height: savedGroup.height
+          };
+        }
+      }
+    } catch (e) {
+      // 忽略错误，使用默认位置
+    }
+    
+    createGroupWindow(groupId, groupName, false, savedBounds);
+    // 窗口打开后保存状态
+    setTimeout(() => {
+      saveAllOpenGroupWindows();
+    }, 100);
     debugLog('[main] 分组窗口创建成功');
   } catch (error) {
     console.error('[main] 创建分组窗口失败:', error);
@@ -818,12 +941,8 @@ ipcMain.on('toggle-always-on-top', (event) => {
     const newState = !isAlwaysOnTop;
     window.setAlwaysOnTop(newState);
     
-    // 保存置顶状态到设置
-    // 通过窗口的webContents找到对应的groupId
-    const groupId = findGroupIdByWindow(window);
-    if (groupId) {
-      saveGroupWindowState(groupId, newState);
-    }
+    // 保存所有打开的窗口状态
+    saveAllOpenGroupWindows();
     
     // 返回新的置顶状态
     event.reply('always-on-top-changed', newState);
@@ -901,38 +1020,6 @@ ipcMain.handle('set-auto-start', async (event, enabled) => {
     return { success: true };
   } catch (error) {
     console.error('Error setting auto start:', error);
-    return { success: false, error: error.message };
-  }
-});
-
-// 设置开机启动的分组
-ipcMain.handle('set-auto-start-groups', async (event, groups) => {
-  try {
-    let settings = { autoStart: false, themeMode: 'light', language: 'zh-CN', autoStartGroups: [] };
-    if (fs.existsSync(settingsPath)) {
-      try {
-        settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
-      } catch (e) {
-        // 如果读取失败，使用默认值
-      }
-    }
-    
-    // 验证groups格式
-    if (!Array.isArray(groups)) {
-      return { success: false, error: 'groups必须是数组' };
-    }
-    
-    // 确保每个分组都有groupId和alwaysOnTop字段
-    settings.autoStartGroups = groups.map(g => ({
-      groupId: g.groupId,
-      alwaysOnTop: g.alwaysOnTop || false
-    }));
-    
-    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
-    
-    return { success: true };
-  } catch (error) {
-    console.error('Error setting auto start groups:', error);
     return { success: false, error: error.message };
   }
 });

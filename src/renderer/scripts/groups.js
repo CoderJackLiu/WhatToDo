@@ -7,8 +7,6 @@ const closeBtn = document.getElementById('close-btn');
 const settingsBtn = document.getElementById('settings-btn');
 const settingsMenu = document.getElementById('settings-menu');
 const autoStartToggle = document.getElementById('auto-start-toggle');
-const autoStartGroupsSection = document.getElementById('auto-start-groups-section');
-const autoStartGroupsList = document.getElementById('auto-start-groups-list');
 const themeLightBtn = document.getElementById('theme-light-btn');
 const themeDarkBtn = document.getElementById('theme-dark-btn');
 const logoutBtn = document.getElementById('logout-btn');
@@ -33,11 +31,6 @@ async function init() {
   bindEvents();
   renderGroups();
   
-  // 如果开机启动已启用，渲染开机启动分组列表
-  if (autoStartToggle.checked) {
-    await renderAutoStartGroups();
-  }
-  
   // 如果没有设置主题，默认使用亮色主题
   if (!document.body.classList.contains('dark-theme') && !document.body.classList.contains('light-theme')) {
     document.body.classList.add('light-theme');
@@ -45,13 +38,6 @@ async function init() {
   
   // 订阅分组数据变化（实时同步）
   subscribeToGroups();
-  
-  // 监听分组变化，更新开机启动分组选择列表
-  window.electronAPI.data.subscribeToGroups(() => {
-    if (autoStartToggle.checked && autoStartGroupsSection.style.display !== 'none') {
-      renderAutoStartGroups();
-    }
-  });
   
   // 监听认证状态变化
   window.electronAPI.auth.onAuthStateChange((event, session) => {
@@ -255,15 +241,6 @@ function bindEvents() {
   autoStartToggle.addEventListener('change', async (e) => {
     const enabled = e.target.checked;
     await window.electronAPI.setAutoStart(enabled);
-    // 显示/隐藏开机启动分组选择区域
-    if (enabled) {
-      autoStartGroupsSection.style.display = 'block';
-      await renderAutoStartGroups();
-    } else {
-      autoStartGroupsSection.style.display = 'none';
-      // 清空开机启动分组
-      await window.electronAPI.setAutoStartGroups([]);
-    }
   });
   
   // 退出登录
@@ -832,13 +809,6 @@ async function loadSettings() {
     if (settings) {
       if (settings.autoStart !== undefined) {
         autoStartToggle.checked = settings.autoStart;
-        // 如果开机启动已启用，显示分组选择区域
-        if (settings.autoStart) {
-          autoStartGroupsSection.style.display = 'block';
-          await renderAutoStartGroups();
-        } else {
-          autoStartGroupsSection.style.display = 'none';
-        }
       }
       if (settings.themeMode) {
         applyThemeMode(settings.themeMode);
@@ -908,102 +878,6 @@ function showSettingsMenu() {
 // 隐藏设置菜单
 function hideSettingsMenu() {
   settingsMenu.classList.remove('visible');
-}
-
-// 渲染开机启动分组选择列表
-async function renderAutoStartGroups() {
-  try {
-    const settings = await window.electronAPI.loadSettings();
-    const autoStartGroups = settings?.autoStartGroups || [];
-    const selectedGroupIds = new Set(autoStartGroups.map(g => g.groupId));
-    
-    autoStartGroupsList.innerHTML = '';
-    
-    if (groups.length === 0) {
-      const emptyMsg = document.createElement('div');
-      emptyMsg.className = 'auto-start-groups-empty';
-      emptyMsg.textContent = '暂无分组';
-      autoStartGroupsList.appendChild(emptyMsg);
-      return;
-    }
-    
-    groups.forEach(group => {
-      const groupItem = document.createElement('div');
-      groupItem.className = 'auto-start-group-item';
-      
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.id = `auto-start-group-${group.id}`;
-      checkbox.checked = selectedGroupIds.has(group.id);
-      checkbox.addEventListener('change', async () => {
-        await saveAutoStartGroups();
-      });
-      
-      const label = document.createElement('label');
-      label.htmlFor = `auto-start-group-${group.id}`;
-      label.textContent = group.name || '未命名分组';
-      
-      const pinToggle = document.createElement('label');
-      pinToggle.className = 'auto-start-pin-toggle';
-      pinToggle.style.display = checkbox.checked ? 'flex' : 'none';
-      
-      const pinCheckbox = document.createElement('input');
-      pinCheckbox.type = 'checkbox';
-      pinCheckbox.className = 'auto-start-pin-checkbox';
-      const groupConfig = autoStartGroups.find(g => g.groupId === group.id);
-      pinCheckbox.checked = groupConfig?.alwaysOnTop || false;
-      pinCheckbox.addEventListener('change', async () => {
-        await saveAutoStartGroups();
-      });
-      
-      const pinLabel = document.createElement('span');
-      pinLabel.textContent = '置顶';
-      
-      pinToggle.appendChild(pinCheckbox);
-      pinToggle.appendChild(pinLabel);
-      
-      // 当主复选框状态改变时，显示/隐藏置顶选项
-      checkbox.addEventListener('change', () => {
-        pinToggle.style.display = checkbox.checked ? 'flex' : 'none';
-        if (!checkbox.checked) {
-          pinCheckbox.checked = false;
-        }
-      });
-      
-      groupItem.appendChild(checkbox);
-      groupItem.appendChild(label);
-      groupItem.appendChild(pinToggle);
-      
-      autoStartGroupsList.appendChild(groupItem);
-    });
-  } catch (error) {
-    console.error('渲染开机启动分组列表失败:', error);
-  }
-}
-
-// 保存开机启动分组设置
-async function saveAutoStartGroups() {
-  try {
-    const groupItems = autoStartGroupsList.querySelectorAll('.auto-start-group-item');
-    const selectedGroups = [];
-    
-    groupItems.forEach(item => {
-      const checkbox = item.querySelector('input[type="checkbox"]:not(.auto-start-pin-checkbox)');
-      const pinCheckbox = item.querySelector('.auto-start-pin-checkbox');
-      
-      if (checkbox && checkbox.checked) {
-        const groupId = checkbox.id.replace('auto-start-group-', '');
-        selectedGroups.push({
-          groupId: groupId,
-          alwaysOnTop: pinCheckbox ? pinCheckbox.checked : false
-        });
-      }
-    });
-    
-    await window.electronAPI.setAutoStartGroups(selectedGroups);
-  } catch (error) {
-    console.error('保存开机启动分组设置失败:', error);
-  }
 }
 
 // 启动应用
