@@ -398,7 +398,7 @@ if (!gotTheLock) {
 
 // 处理协议 URL（OAuth 回调和邮箱确认回调）
 function handleProtocolUrl(url) {
-  console.log('Received protocol URL:', url);
+  // console.log('Received protocol URL:', url);
   
   // 如果窗口还未创建，等待窗口创建完成
   if (!mainWindow || mainWindow.isDestroyed()) {

@@ -12,10 +12,13 @@
  */
 async function showAlert(message, options = {}) {
   return new Promise((resolve) => {
+    // 获取 i18n 实例（如果可用）
+    const i18n = typeof window !== 'undefined' && window.i18n ? window.i18n : null;
+    
     const {
-      title = '提示',
+      title = i18n ? i18n.t('message.info') : '提示',
       type = 'info',
-      confirmText = '确定'
+      confirmText = i18n ? i18n.t('confirm') : '确定'
     } = options;
 
     // 创建遮罩层
@@ -126,11 +129,14 @@ async function showAlert(message, options = {}) {
  */
 async function showConfirm(message, options = {}) {
   return new Promise((resolve) => {
+    // 获取 i18n 实例（如果可用）
+    const i18n = typeof window !== 'undefined' && window.i18n ? window.i18n : null;
+    
     const {
-      title = '确认',
+      title = i18n ? i18n.t('message.confirm') : '确认',
       type = 'warning',
-      confirmText = '确定',
-      cancelText = '取消'
+      confirmText = i18n ? i18n.t('confirm') : '确定',
+      cancelText = i18n ? i18n.t('cancel') : '取消'
     } = options;
 
     // 创建遮罩层

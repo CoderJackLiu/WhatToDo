@@ -330,7 +330,7 @@ class AuthService {
   // 处理 OAuth 回调和邮箱确认回调
   async handleOAuthCallback(url) {
     try {
-      console.log('Processing callback URL:', url);
+      //console.log('Processing callback URL:', url);
       
       // 解析 URL（处理自定义协议）
       let urlObj;
