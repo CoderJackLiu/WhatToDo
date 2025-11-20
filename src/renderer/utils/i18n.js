@@ -74,6 +74,8 @@ const i18n = {
       'login.qqEmailTip': '⚠️ QQ 邮箱用户请注意：邮件可能被标记为垃圾邮件，请务必检查"垃圾箱"文件夹！',
       'login.noEmail': '没有收到邮件？',
       'login.resendEmail': '重新发送确认邮件',
+      'login.sessionExpired': '您的登录已过期',
+      'login.sessionExpiredDesc': '为了您的账户安全，登录状态已过期（10天），请重新登录。',
       
       // 分组详情页面
       'detail.title': 'TodoList',
@@ -175,6 +177,8 @@ const i18n = {
       'login.qqEmailTip': '⚠️ QQ Email users: Emails may be marked as spam, please check the "Junk" folder!',
       'login.noEmail': "Didn't receive the email?",
       'login.resendEmail': 'Resend confirmation email',
+      'login.sessionExpired': 'Your session has expired',
+      'login.sessionExpiredDesc': 'For your account security, your login session has expired (10 days), please log in again.',
       
       // Group detail page
       'detail.title': 'TodoList',

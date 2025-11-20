@@ -23,7 +23,8 @@ const registerPasswordConfirm = document.getElementById('register-password-confi
 let currentMode = 'login';
 
 // 初始化
-function init() {
+async function init() {
+  await initLanguage();
   bindEvents();
   checkOAuthCallback();
   loadThemeMode();
@@ -91,17 +92,17 @@ function bindEvents() {
     if (!email) return;
 
     resendStatus.style.display = 'block';
-    resendStatus.textContent = '正在发送...';
+    resendStatus.textContent = i18n.t('loading');
     resendStatus.style.color = '#5c4f3a';
 
     try {
       const result = await window.electronAPI.auth.resendConfirmation(email);
       if (result.success) {
-        let successMsg = '✓ 确认邮件已发送，请检查您的邮箱（包括垃圾邮件文件夹）';
+        let successMsg = '✓ ' + i18n.t('login.checkEmail');
         
         // QQ 邮箱特殊提示
         if (email.includes('@qq.com')) {
-          successMsg += '\n⚠️ QQ 邮箱用户：请务必检查"垃圾箱"文件夹！';
+          successMsg += '\n' + i18n.t('login.qqEmailTip');
         }
         
         resendStatus.textContent = successMsg;
@@ -110,27 +111,27 @@ function bindEvents() {
         // 3秒后添加额外提示
         setTimeout(() => {
           if (resendStatus.textContent.includes('✓')) {
-            let extraTip = '\n💡 提示：如果仍未收到，请等待2-3分钟后重试（避免频率限制）';
+            let extraTip = '\n💡 ' + i18n.t('message.info');
             if (email.includes('@qq.com')) {
-              extraTip += '\n💡 QQ 邮箱建议：将发件人添加到白名单，或使用其他邮箱地址';
+              extraTip += '\n💡 ' + i18n.t('message.info');
             }
             resendStatus.textContent += extraTip;
           }
         }, 3000);
       } else {
-        resendStatus.textContent = '✗ 发送失败：' + (result.error || '未知错误');
+        resendStatus.textContent = '✗ ' + i18n.t('message.error') + ': ' + (result.error || i18n.t('message.unknownError'));
         resendStatus.style.color = '#f44336';
         
         // 如果是频率限制错误，添加提示
         if (result.code === 'rate_limit_exceeded' || result.error?.includes('频率')) {
           setTimeout(() => {
-            resendStatus.textContent += '\n⏰ 提示：发送频率过高，请等待5-10分钟后再试';
+            resendStatus.textContent += '\n⏰ ' + i18n.t('message.info');
           }, 1000);
         }
       }
     } catch (error) {
       console.error('发送邮件异常:', error);
-      resendStatus.textContent = '✗ 发送失败：' + error.message;
+      resendStatus.textContent = '✗ ' + i18n.t('message.error') + ': ' + error.message;
       resendStatus.style.color = '#f44336';
     }
   });
@@ -211,17 +212,17 @@ async function handleLogin() {
 
   // 验证
   if (!email) {
-    showError('请输入邮箱地址');
+    showError(i18n.t('login.email') + ' ' + i18n.t('message.error'));
     return;
   }
 
   if (!validateEmail(email)) {
-    showError('请输入有效的邮箱地址');
+    showError(i18n.t('login.email') + ' ' + i18n.t('message.error'));
     return;
   }
 
   if (!password) {
-    showError('请输入密码');
+    showError(i18n.t('login.password') + ' ' + i18n.t('message.error'));
     return;
   }
 
@@ -235,17 +236,17 @@ async function handleLogin() {
     if (result.success) {
       // 登录成功，跳转到主界面
       window.location.href = 'groups.html';
-    } else {
-      // 检查是否是邮箱未确认错误
-      if (result.code === 'email_not_confirmed') {
-        showEmailConfirmationMessage(email);
       } else {
-        showError(result.error || '登录失败，请检查邮箱和密码');
+        // 检查是否是邮箱未确认错误
+        if (result.code === 'email_not_confirmed') {
+          showEmailConfirmationMessage(email);
+        } else {
+          showError(result.error || i18n.t('message.error'));
+        }
+        setLoading(loginBtn, false);
       }
-      setLoading(loginBtn, false);
-    }
   } catch (error) {
-    showError('登录失败：' + error.message);
+    showError(i18n.t('message.error') + ': ' + error.message);
     setLoading(loginBtn, false);
   }
 }
@@ -258,27 +259,27 @@ async function handleRegister() {
 
   // 验证
   if (!email) {
-    showError('请输入邮箱地址');
+    showError(i18n.t('login.email') + ' ' + i18n.t('message.error'));
     return;
   }
 
   if (!validateEmail(email)) {
-    showError('请输入有效的邮箱地址');
+    showError(i18n.t('login.email') + ' ' + i18n.t('message.error'));
     return;
   }
 
   if (!password) {
-    showError('请输入密码');
+    showError(i18n.t('login.password') + ' ' + i18n.t('message.error'));
     return;
   }
 
   if (password.length < 6) {
-    showError('密码长度至少6位');
+    showError(i18n.t('message.error'));
     return;
   }
 
   if (password !== passwordConfirm) {
-    showError('两次输入的密码不一致');
+    showError(i18n.t('message.error'));
     return;
   }
 
@@ -294,17 +295,17 @@ async function handleRegister() {
         // 需要邮箱确认，不自动登录
         // 检查是否有 confirmation_sent_at，说明邮件已发送
         const confirmationSent = result.data?.user?.confirmation_sent_at;
-        let message = '注册成功！';
+        let message = i18n.t('message.success') + '!';
         
         if (confirmationSent) {
-          message += '确认邮件已发送到您的邮箱，请查收（包括垃圾邮件文件夹）。';
+          message += ' ' + i18n.t('login.checkEmail');
         } else {
-          message += '请检查您的邮箱并点击确认链接以完成登录。';
+          message += ' ' + i18n.t('login.checkEmail');
         }
         
         // 特别提示 QQ 邮箱用户
         if (email.includes('@qq.com')) {
-          message += '\n\n提示：QQ 邮箱可能将邮件标记为垃圾邮件，请检查"垃圾箱"文件夹。';
+          message += '\n\n' + i18n.t('login.qqEmailTip');
         }
         
         showError(message);
@@ -323,7 +324,7 @@ async function handleRegister() {
         } else {
           // 检查是否是邮箱未确认错误
           if (loginResult.code === 'email_not_confirmed') {
-            showError('注册成功！请检查您的邮箱并点击确认链接以完成登录。');
+            showError(i18n.t('message.success') + '! ' + i18n.t('login.checkEmail'));
             setLoading(registerBtn, false);
             switchForm('login');
             setTimeout(() => {
@@ -331,18 +332,18 @@ async function handleRegister() {
               showEmailConfirmationMessage(email);
             }, 100);
           } else {
-            showError('注册成功，但自动登录失败，请手动登录');
+            showError(i18n.t('message.error'));
             setLoading(registerBtn, false);
             switchForm('login');
           }
         }
       }
     } else {
-      showError(result.error || '注册失败，请稍后重试');
+      showError(result.error || i18n.t('message.error'));
       setLoading(registerBtn, false);
     }
   } catch (error) {
-    showError('注册失败：' + error.message);
+    showError(i18n.t('message.error') + ': ' + error.message);
     setLoading(registerBtn, false);
   }
 }
@@ -356,17 +357,17 @@ async function handleGitHubLogin() {
     const result = await window.electronAPI.auth.signInWithGitHub();
     
     if (!result.success) {
-      showError(result.error || 'GitHub 登录失败');
+      showError(result.error || i18n.t('message.error'));
       setLoading(githubLoginBtn, false);
     } else {
       // 如果成功，会打开浏览器，显示提示信息
-      showError('✓ 正在打开浏览器进行GitHub授权，请完成授权后返回应用...');
+      showError('✓ ' + i18n.t('loading'));
       // 保持加载状态，等待回调
       // 注意：按钮状态会在回调成功或失败时重置
     }
   } catch (error) {
     console.error('GitHub登录异常:', error);
-    showError('GitHub 登录失败：' + error.message);
+    showError(i18n.t('message.error') + ': ' + error.message);
     setLoading(githubLoginBtn, false);
   }
 }
@@ -393,28 +394,105 @@ function checkOAuthCallback() {
       if (result.success) {
         if (result.type === 'email_confirmation') {
           // 邮箱确认成功，显示成功消息并跳转
-          showError('✓ 邮箱确认成功！正在登录...');
+          showError('✓ ' + i18n.t('message.success') + '! ' + i18n.t('loading'));
           setTimeout(() => {
             window.location.href = 'groups.html';
           }, 1000);
         } else {
           // OAuth登录成功
-          showError('✓ GitHub登录成功！正在跳转...');
+          showError('✓ ' + i18n.t('message.success') + '! ' + i18n.t('loading'));
           setTimeout(() => {
             window.location.href = 'groups.html';
           }, 500);
         }
       } else {
-        showError('登录失败：' + result.error);
+        showError(i18n.t('message.error') + ': ' + result.error);
       }
     } catch (error) {
       console.error('回调处理错误:', error);
-      showError('登录失败：' + error.message);
+      showError(i18n.t('message.error') + ': ' + error.message);
       if (githubLoginBtn) {
         setLoading(githubLoginBtn, false);
       }
     }
   });
+}
+
+// 初始化语言
+async function initLanguage() {
+  try {
+    let lang = 'zh-CN'; // 默认语言
+    
+    // 尝试从设置文件读取语言设置
+    try {
+      const settings = await window.electronAPI.loadSettings();
+      if (settings && settings.language) {
+        lang = settings.language;
+      } else {
+        // 如果没有设置，检测系统语言
+        const systemLang = navigator.language || navigator.languages?.[0] || 'zh-CN';
+        // 如果系统语言以 en 开头，使用 en-US，否则使用 zh-CN
+        if (systemLang.toLowerCase().startsWith('en')) {
+          lang = 'en-US';
+        } else {
+          lang = 'zh-CN';
+        }
+      }
+    } catch (error) {
+      console.error('读取语言设置失败，使用系统语言:', error);
+      // 如果读取设置失败，检测系统语言
+      const systemLang = navigator.language || navigator.languages?.[0] || 'zh-CN';
+      if (systemLang.toLowerCase().startsWith('en')) {
+        lang = 'en-US';
+      } else {
+        lang = 'zh-CN';
+      }
+    }
+    
+    // 初始化 i18n
+    i18n.init(lang);
+    // 更新 HTML lang 属性
+    document.documentElement.lang = lang;
+    // 更新界面文本
+    updateUI();
+  } catch (error) {
+    console.error('初始化语言失败:', error);
+    // 如果初始化失败，使用默认中文
+    i18n.init('zh-CN');
+    updateUI();
+  }
+}
+
+// 更新界面文本
+function updateUI() {
+  // 更新所有带有 data-i18n 属性的元素的文本内容
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    el.textContent = i18n.t(key);
+  });
+  
+  // 更新所有带有 data-i18n-placeholder 属性的输入框的 placeholder
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    el.placeholder = i18n.t(key);
+  });
+  
+  // 更新所有带有 data-i18n-title 属性的元素的 title
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    const key = el.getAttribute('data-i18n-title');
+    el.title = i18n.t(key);
+  });
+  
+  // 更新按钮加载状态的文本
+  const loginBtnText = loginBtn.querySelector('.btn-text');
+  const loginBtnLoading = loginBtn.querySelector('.btn-loading');
+  const registerBtnText = registerBtn.querySelector('.btn-text');
+  const registerBtnLoading = registerBtn.querySelector('.btn-loading');
+  
+  if (loginBtnText) loginBtnText.textContent = i18n.t('login.login');
+  if (loginBtnLoading) loginBtnLoading.textContent = i18n.t('login.logging');
+  if (registerBtnText) registerBtnText.textContent = i18n.t('login.register');
+  if (registerBtnLoading) registerBtnLoading.textContent = i18n.t('login.registering');
 }
 
 // 加载主题模式

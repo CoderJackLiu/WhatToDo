@@ -460,10 +460,17 @@ body.dark-theme .todo-item:hover {
 /* 分组详情页面的待办项样式 - 与背景一致，更紧凑 */
 body.group-detail .todo-item {
   padding: 4px 8px;
+  min-height: 36px; /* 增加最小高度，避免编辑时误触拖拽 */
   background: transparent;
   border: none;
   border-radius: 0;
   box-shadow: none;
+}
+
+/* 编辑状态下的待办项 */
+body.group-detail .todo-item.editing {
+  cursor: text;
+  min-height: 40px; /* 编辑时稍微增加高度 */
 }
 
 body.dark-theme.group-detail .todo-item {
@@ -550,10 +557,11 @@ body.group-detail .todo-item.completed .todo-text {
   color: var(--theme-text-light, #b5a88f);
 }
 
-/* 编辑输入框 */
+/* 编辑输入框样式 */
 .todo-edit-input {
   flex: 1;
-  padding: 4px 8px;
+  padding: 6px 10px; /* 增加内边距，让编辑区域更大 */
+  min-height: 28px; /* 设置最小高度 */
   font-size: 14px;
   border: 2px solid #a89875;
   border-radius: 4px;
@@ -562,6 +570,7 @@ body.group-detail .todo-item.completed .todo-text {
   color: #5c4f3a;
   margin-right: 12px;
   transition: border-color 0.15s ease;
+  cursor: text; /* 编辑时显示文本光标 */
 }
 
 .todo-edit-input:focus {

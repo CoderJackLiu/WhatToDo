@@ -65,17 +65,39 @@ function ensureSettingsFile() {
   }
 }
 
+// 获取图标路径（兼容开发环境和打包环境）
+function getIconPath() {
+  if (app.isPackaged) {
+    // 打包后的路径：resources/build/icon.ico
+    let iconPath = path.join(process.resourcesPath, 'build', 'icon.ico');
+    if (fs.existsSync(iconPath)) {
+      return iconPath;
+    }
+    // 如果 resourcesPath 不存在，尝试使用 appPath
+    iconPath = path.join(app.getAppPath(), 'build', 'icon.ico');
+    if (fs.existsSync(iconPath)) {
+      return iconPath;
+    }
+    // 如果还是不存在，尝试直接使用 appPath 下的 icon.ico
+    iconPath = path.join(app.getAppPath(), 'icon.ico');
+    if (fs.existsSync(iconPath)) {
+      return iconPath;
+    }
+    return null;
+  } else {
+    // 开发环境路径
+    const iconPath = path.join(__dirname, '../../build/icon.ico');
+    return fs.existsSync(iconPath) ? iconPath : null;
+  }
+}
+
 // 创建主窗口（分组列表或登录界面）
 function createWindow(initialFile = null) {
-  const iconPath = path.join(__dirname, '../../build/icon.ico');
-  let windowIcon;
+  const iconPath = getIconPath();
+  let windowIcon = iconPath;
   
-  try {
-    if (fs.existsSync(iconPath)) {
-      windowIcon = iconPath;
-    }
-  } catch (error) {
-    console.error('Failed to load window icon:', error.message);
+  if (!iconPath) {
+    debugLog('[main] 窗口图标文件不存在，使用默认图标');
   }
   
   // 检查是否有分组窗口要打开，如果有则默认隐藏主窗口
@@ -93,9 +115,9 @@ function createWindow(initialFile = null) {
   }
   
   mainWindow = new BrowserWindow({
-    width: 500,
+    width: 425,
     height: 650,
-    minWidth: 400,
+    minWidth: 340,
     minHeight: 500,
     frame: false,
     transparent: false,
@@ -158,15 +180,11 @@ function createGroupWindow(groupId, groupName, alwaysOnTop = false, windowBounds
     return;
   }
 
-  const iconPath = path.join(__dirname, '../../build/icon.ico');
-  let windowIcon;
+  const iconPath = getIconPath();
+  let windowIcon = iconPath;
   
-  try {
-    if (fs.existsSync(iconPath)) {
-      windowIcon = iconPath;
-    }
-  } catch (error) {
-    console.error('Failed to load group window icon:', error.message);
+  if (!iconPath) {
+    debugLog('[main] 分组窗口图标文件不存在，使用默认图标');
   }
   
   // 使用保存的位置和大小，如果没有则使用默认值
@@ -371,7 +389,60 @@ async function loadAutoStartGroups() {
     
     // 如果有分组窗口要打开
     if (hasAutoStartGroups) {
-      // 加载分组数据以获取分组名称
+      // 等待主窗口加载完成并确保分组数据已加载
+      const waitForDataReady = async () => {
+        // 等待主窗口存在
+        let retries = 0;
+        while ((!mainWindow || mainWindow.isDestroyed()) && retries < 10) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+          retries++;
+        }
+        
+        if (!mainWindow || mainWindow.isDestroyed()) {
+          return false;
+        }
+        
+        // 等待主窗口加载完成（groups.html）
+        const url = mainWindow.webContents.getURL();
+        if (!url.includes('groups.html')) {
+          // 如果还没加载groups.html，等待加载
+          await new Promise((resolve) => {
+            const checkUrl = () => {
+              const currentUrl = mainWindow.webContents.getURL();
+              if (currentUrl.includes('groups.html')) {
+                resolve();
+              } else {
+                setTimeout(checkUrl, 200);
+              }
+            };
+            mainWindow.webContents.once('did-finish-load', () => {
+              setTimeout(checkUrl, 300);
+            });
+            // 超时保护
+            setTimeout(resolve, 5000);
+          });
+        }
+        
+        // 等待分组数据加载完成（给渲染进程时间加载数据）
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        return true;
+      };
+      
+      // 等待数据准备就绪
+      const dataReady = await waitForDataReady();
+      if (!dataReady) {
+        debugLog('[main] 数据未准备就绪，延迟打开开机启动分组');
+        // 延迟重试
+        setTimeout(() => {
+          if (!autoStartGroupsLoaded) {
+            loadAutoStartGroups();
+          }
+        }, 2000);
+        return;
+      }
+      
+      // 加载分组数据以获取分组名称（重新加载确保数据最新）
       const groupsResult = await dataService.loadGroups();
       if (!groupsResult.success) {
         console.error('加载分组失败，无法打开开机启动分组');
@@ -383,45 +454,54 @@ async function loadAutoStartGroups() {
         return;
       }
       
-      // 延迟打开分组窗口，确保主窗口已创建
-      setTimeout(() => {
-        let openedCount = 0;
-        settings.autoStartGroups.forEach((groupConfig) => {
-          const groupId = groupConfig.groupId;
-          const alwaysOnTop = groupConfig.alwaysOnTop || false;
-          
-          // 获取保存的窗口位置和大小
-          const windowBounds = {
-            x: groupConfig.x,
-            y: groupConfig.y,
-            width: groupConfig.width,
-            height: groupConfig.height
-          };
-          
-          // 验证分组是否存在
-          const group = groupsResult.data.find(g => g.id === groupId);
-          if (group) {
-            const groupName = group.name || '';
-            createGroupWindow(groupId, groupName, alwaysOnTop, windowBounds);
-            openedCount++;
-            debugLog('[main] 打开开机启动分组:', groupId, '置顶:', alwaysOnTop, '位置:', windowBounds);
-          } else {
-            console.warn(`开机启动分组 ${groupId} 不存在，已跳过`);
-          }
-        });
+      // 打开分组窗口
+      let openedCount = 0;
+      const groupsToOpen = [];
+      
+      settings.autoStartGroups.forEach((groupConfig) => {
+        const groupId = groupConfig.groupId;
+        const alwaysOnTop = groupConfig.alwaysOnTop || false;
         
-        // 如果有分组窗口打开，隐藏主窗口
-        if (openedCount > 0 && mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.hide();
-          debugLog('[main] 已打开', openedCount, '个分组窗口，隐藏主窗口');
-        } else if (isAutoStartEnabled && mainWindow && !mainWindow.isDestroyed()) {
-          // 如果没有成功打开任何分组窗口，但设置了开机启动，显示主窗口
-          mainWindow.show();
-          debugLog('[main] 没有分组窗口打开，显示主窗口');
+        // 获取保存的窗口位置和大小
+        const windowBounds = {
+          x: groupConfig.x,
+          y: groupConfig.y,
+          width: groupConfig.width,
+          height: groupConfig.height
+        };
+        
+        // 验证分组是否存在
+        const group = groupsResult.data.find(g => g.id === groupId);
+        if (group) {
+          groupsToOpen.push({
+            groupId,
+            groupName: group.name || '',
+            alwaysOnTop,
+            windowBounds
+          });
+        } else {
+          console.warn(`开机启动分组 ${groupId} 不存在，已跳过`);
         }
-        
-        autoStartGroupsLoaded = true; // 标记为已加载
-      }, 1500); // 延迟1.5秒，确保主窗口和认证已完成
+      });
+      
+      // 打开所有有效的分组窗口
+      groupsToOpen.forEach((config) => {
+        createGroupWindow(config.groupId, config.groupName, config.alwaysOnTop, config.windowBounds);
+        openedCount++;
+        debugLog('[main] 打开开机启动分组:', config.groupId, '置顶:', config.alwaysOnTop, '位置:', config.windowBounds);
+      });
+      
+      // 如果有分组窗口打开，隐藏主窗口
+      if (openedCount > 0 && mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.hide();
+        debugLog('[main] 已打开', openedCount, '个分组窗口，隐藏主窗口');
+      } else if (isAutoStartEnabled && mainWindow && !mainWindow.isDestroyed()) {
+        // 如果没有成功打开任何分组窗口，但设置了开机启动，显示主窗口
+        mainWindow.show();
+        debugLog('[main] 没有分组窗口打开，显示主窗口');
+      }
+      
+      autoStartGroupsLoaded = true; // 标记为已加载
     } else {
       // 没有分组窗口要打开，但设置了开机启动，显示主窗口
       if (isAutoStartEnabled && mainWindow && !mainWindow.isDestroyed()) {
@@ -451,8 +531,24 @@ async function loadAutoStartGroups() {
 function createTray() {
   const { nativeImage } = require('electron');
   
-  // 使用应用图标
-  const iconPath = path.join(__dirname, '../../build/icon.ico');
+  // 获取图标路径（兼容开发环境和打包环境）
+  let iconPath;
+  if (app.isPackaged) {
+    // 打包后的路径：resources/build/icon.ico
+    iconPath = path.join(process.resourcesPath, 'build', 'icon.ico');
+    // 如果 resourcesPath 不存在，尝试使用 appPath
+    if (!fs.existsSync(iconPath)) {
+      iconPath = path.join(app.getAppPath(), 'build', 'icon.ico');
+    }
+    // 如果还是不存在，尝试直接使用 appPath 下的 icon.ico
+    if (!fs.existsSync(iconPath)) {
+      iconPath = path.join(app.getAppPath(), 'icon.ico');
+    }
+  } else {
+    // 开发环境路径
+    iconPath = path.join(__dirname, '../../build/icon.ico');
+  }
+  
   let trayIcon;
   
   try {
@@ -462,18 +558,41 @@ function createTray() {
       if (trayIcon && !trayIcon.isEmpty()) {
         // 设置托盘图标尺寸（Windows 推荐 16x16）
         trayIcon = trayIcon.resize({ width: 16, height: 16 });
+        debugLog('[main] 托盘图标加载成功:', iconPath);
       } else {
-        // 如果图标无效，使用空图标
-        trayIcon = nativeImage.createEmpty();
+        console.warn('[main] 托盘图标文件无效:', iconPath);
+        // 如果图标无效，尝试使用应用图标
+        trayIcon = app.getAppIcon();
+        if (trayIcon && !trayIcon.isEmpty()) {
+          trayIcon = trayIcon.resize({ width: 16, height: 16 });
+        } else {
+          trayIcon = nativeImage.createEmpty();
+        }
       }
     } else {
-      // 如果图标不存在，使用空图标
-      trayIcon = nativeImage.createEmpty();
+      console.warn('[main] 托盘图标文件不存在:', iconPath);
+      // 如果图标不存在，尝试使用应用图标
+      trayIcon = app.getAppIcon();
+      if (trayIcon && !trayIcon.isEmpty()) {
+        trayIcon = trayIcon.resize({ width: 16, height: 16 });
+      } else {
+        trayIcon = nativeImage.createEmpty();
+      }
     }
   } catch (error) {
-    console.error('Failed to load tray icon:', error.message);
-    // 如果加载失败，使用空图标
-    trayIcon = nativeImage.createEmpty();
+    console.error('[main] 加载托盘图标失败:', error.message);
+    console.error('[main] 尝试的路径:', iconPath);
+    // 如果加载失败，尝试使用应用图标
+    try {
+      trayIcon = app.getAppIcon();
+      if (trayIcon && !trayIcon.isEmpty()) {
+        trayIcon = trayIcon.resize({ width: 16, height: 16 });
+      } else {
+        trayIcon = nativeImage.createEmpty();
+      }
+    } catch (e) {
+      trayIcon = nativeImage.createEmpty();
+    }
   }
   
   tray = new Tray(trayIcon);
@@ -674,6 +793,34 @@ app.whenReady().then(() => {
       
       // 如果登出，跳转到登录页面
       if (event === 'SIGNED_OUT') {
+        // 关闭所有分组窗口
+        groupWindows.forEach((window, groupId) => {
+          if (window && !window.isDestroyed()) {
+            try {
+              window.close();
+            } catch (error) {
+              console.error(`关闭分组窗口失败 (${groupId}):`, error);
+            }
+          }
+        });
+        groupWindows.clear();
+        
+        // 清空开机启动分组设置
+        try {
+          let settings = { autoStart: false, themeMode: 'light', language: 'zh-CN', autoStartGroups: [] };
+          if (fs.existsSync(settingsPath)) {
+            try {
+              settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+            } catch (e) {
+              // 如果读取失败，使用默认值
+            }
+          }
+          settings.autoStartGroups = []; // 清空分组窗口记录
+          fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+        } catch (error) {
+          console.error('清空开机启动分组设置失败:', error);
+        }
+        
         mainWindow.loadFile(path.join(__dirname, '../renderer/pages/login.html'));
         // 调整登录窗口大小
         setTimeout(() => {
@@ -688,8 +835,8 @@ app.whenReady().then(() => {
         mainWindow.loadFile(path.join(__dirname, '../renderer/pages/groups.html'));
         // 恢复主窗口大小
         setTimeout(() => {
-          mainWindow.setSize(500, 650);
-          mainWindow.setMinimumSize(400, 500);
+          mainWindow.setSize(425, 650);
+          mainWindow.setMinimumSize(340, 500);
         }, 100);
         // 登录后尝试加载开机启动分组
         setTimeout(() => {
@@ -798,7 +945,26 @@ ipcMain.handle('data-update-group', async (event, id, updates) => {
 });
 
 ipcMain.handle('data-delete-group', async (event, id) => {
-  return await dataService.deleteGroup(id);
+  const result = await dataService.deleteGroup(id);
+  
+  // 如果删除成功，关闭对应的分组窗口
+  if (result.success && groupWindows.has(id)) {
+    const window = groupWindows.get(id);
+    if (window && !window.isDestroyed()) {
+      try {
+        window.close();
+        debugLog('[main] 分组删除成功，已关闭对应的窗口:', id);
+      } catch (error) {
+        console.error(`关闭分组窗口失败 (${id}):`, error);
+      }
+    }
+    groupWindows.delete(id);
+    
+    // 更新保存的窗口状态（移除已删除的分组）
+    saveAllOpenGroupWindows();
+  }
+  
+  return result;
 });
 
 ipcMain.handle('data-reorder-groups', async (event, groupIds) => {

@@ -621,6 +621,10 @@ function startEdit(id) {
   const checkbox = item.querySelector('.todo-checkbox');
   const deleteBtn = item.querySelector('.delete-btn');
   
+  // 禁用拖拽功能
+  item.setAttribute('draggable', 'false');
+  item.classList.add('editing');
+  
   const input = document.createElement('input');
   input.type = 'text';
   input.className = 'todo-edit-input';
@@ -633,8 +637,21 @@ function startEdit(id) {
   input.focus();
   input.select();
   
+  // 阻止编辑输入框的拖拽事件
+  input.addEventListener('mousedown', (e) => {
+    e.stopPropagation();
+  });
+  input.addEventListener('dragstart', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+  });
+  
   const saveEdit = () => {
     const newText = input.value.trim();
+    // 恢复拖拽功能
+    item.setAttribute('draggable', 'true');
+    item.classList.remove('editing');
     if (newText) {
       editTodo(id, newText);
     } else {
@@ -650,6 +667,9 @@ function startEdit(id) {
   });
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
+      // 恢复拖拽功能
+      item.setAttribute('draggable', 'true');
+      item.classList.remove('editing');
       renderTodos();
     }
   });
@@ -795,8 +815,16 @@ function debounce(func, wait) {
 }
 
 function handleTodoDragStart(e) {
-  // 如果点击的是文本区域，不启动拖动（允许双击编辑）
-  if (e.target.classList.contains('todo-text')) {
+  // 如果点击的是文本区域或编辑输入框，不启动拖动（允许双击编辑）
+  if (e.target.classList.contains('todo-text') || 
+      e.target.classList.contains('todo-edit-input') ||
+      this.classList.contains('editing')) {
+    e.preventDefault();
+    return false;
+  }
+  
+  // 如果item正在编辑中，不启动拖动
+  if (this.querySelector('.todo-edit-input')) {
     e.preventDefault();
     return false;
   }

@@ -1,6 +1,6 @@
 {
   "name": "electron-todolist",
-  "version": "2.1.3",
+  "version": "2.1.4",
   "description": "TodoList Desktop App with Group Management and Performance Optimization",
   "main": "src/main/main.js",
   "engines": {
@@ -74,6 +74,12 @@
       "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
       "!**/{appveyor.yml,.travis.yml,circle.yml}",
       "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
+    ],
+    "extraResources": [
+      {
+        "from": "build/icon.ico",
+        "to": "build/icon.ico"
+      }
     ],
     "electronDownload": {
       "cache": "./electron-cache"

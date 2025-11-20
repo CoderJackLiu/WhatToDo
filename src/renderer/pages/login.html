@@ -10,8 +10,8 @@
   <div class="login-container">
     <div class="login-box">
       <div class="login-header">
-        <h1>📝 TodoList</h1>
-        <p class="login-subtitle">登录以同步您的数据</p>
+        <h1 data-i18n="login.title">📝 TodoList</h1>
+        <p class="login-subtitle" data-i18n="login.subtitle">登录以同步您的数据</p>
       </div>
 
       <!-- 错误提示 -->
@@ -19,18 +19,18 @@
       
       <!-- Session 过期提示 -->
       <div class="session-expired-message" id="session-expired-message" style="display: none;">
-        <p><strong>⏰ 您的登录已过期</strong></p>
-        <p>为了您的账户安全，登录状态已过期（10天），请重新登录。</p>
+        <p><strong>⏰ <span data-i18n="login.sessionExpired">您的登录已过期</span></strong></p>
+        <p data-i18n="login.sessionExpiredDesc">为了您的账户安全，登录状态已过期（10天），请重新登录。</p>
       </div>
       
       <!-- 邮箱未确认提示 -->
       <div class="email-confirmation-message" id="email-confirmation-message" style="display: none;">
-        <p><strong>您的邮箱尚未确认</strong></p>
-        <p>请检查您的邮箱（包括<strong>垃圾邮件/垃圾箱</strong>文件夹）并点击确认链接。</p>
-        <p id="qq-email-tip" style="display: none; color: #856404; font-weight: 500; margin-top: 8px;">
+        <p><strong data-i18n="login.emailNotConfirmed">您的邮箱尚未确认</strong></p>
+        <p data-i18n="login.checkEmail">请检查您的邮箱（包括<strong>垃圾邮件/垃圾箱</strong>文件夹）并点击确认链接。</p>
+        <p id="qq-email-tip" style="display: none; color: #856404; font-weight: 500; margin-top: 8px;" data-i18n="login.qqEmailTip">
           ⚠️ QQ 邮箱用户请注意：邮件可能被标记为垃圾邮件，请务必检查"垃圾箱"文件夹！
         </p>
-        <p style="margin-top: 12px;">没有收到邮件？<a href="#" id="resend-confirmation-link">重新发送确认邮件</a></p>
+        <p style="margin-top: 12px;"><span data-i18n="login.noEmail">没有收到邮件？</span><a href="#" id="resend-confirmation-link" data-i18n="login.resendEmail">重新发送确认邮件</a></p>
         <p id="resend-status" style="display: none; margin-top: 10px;"></p>
       </div>
 
@@ -41,6 +41,7 @@
             type="email" 
             id="login-email" 
             class="form-input" 
+            data-i18n-placeholder="login.email"
             placeholder="邮箱地址"
             autocomplete="email"
           >
@@ -50,17 +51,18 @@
             type="password" 
             id="login-password" 
             class="form-input" 
+            data-i18n-placeholder="login.password"
             placeholder="密码"
             autocomplete="current-password"
           >
         </div>
         <button class="btn btn-primary" id="login-btn">
-          <span class="btn-text">登录</span>
-          <span class="btn-loading" style="display: none;">登录中...</span>
+          <span class="btn-text" data-i18n="login.login">登录</span>
+          <span class="btn-loading" style="display: none;" data-i18n="login.logging">登录中...</span>
         </button>
         <div class="form-footer">
-          <span>还没有账号？</span>
-          <a href="#" id="switch-to-register">立即注册</a>
+          <span data-i18n="login.noAccount">还没有账号？</span>
+          <a href="#" id="switch-to-register" data-i18n="login.registerNow">立即注册</a>
         </div>
       </div>
 
@@ -71,6 +73,7 @@
             type="email" 
             id="register-email" 
             class="form-input" 
+            data-i18n-placeholder="login.email"
             placeholder="邮箱地址"
             autocomplete="email"
           >
@@ -80,6 +83,7 @@
             type="password" 
             id="register-password" 
             class="form-input" 
+            data-i18n-placeholder="login.passwordMin"
             placeholder="密码（至少6位）"
             autocomplete="new-password"
           >
@@ -89,17 +93,18 @@
             type="password" 
             id="register-password-confirm" 
             class="form-input" 
+            data-i18n-placeholder="login.passwordConfirm"
             placeholder="确认密码"
             autocomplete="new-password"
           >
         </div>
         <button class="btn btn-primary" id="register-btn">
-          <span class="btn-text">注册</span>
-          <span class="btn-loading" style="display: none;">注册中...</span>
+          <span class="btn-text" data-i18n="login.register">注册</span>
+          <span class="btn-loading" style="display: none;" data-i18n="login.registering">注册中...</span>
         </button>
         <div class="form-footer">
-          <span>已有账号？</span>
-          <a href="#" id="switch-to-login">立即登录</a>
+          <span data-i18n="login.hasAccount">已有账号？</span>
+          <a href="#" id="switch-to-login" data-i18n="login.loginNow">立即登录</a>
         </div>
       </div>
 
