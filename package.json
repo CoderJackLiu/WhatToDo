@@ -1,6 +1,6 @@
 {
   "name": "electron-todolist",
-  "version": "2.1.4",
+  "version": "2.2.0",
   "description": "TodoList Desktop App with Group Management and Performance Optimization",
   "main": "src/main/main.js",
   "engines": {
@@ -83,10 +83,18 @@
     ],
     "electronDownload": {
       "cache": "./electron-cache"
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "CoderJackLiu",
+        "repo": "WhatToDo"
+      }
+    ]
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.81.1",
+    "electron-updater": "^6.6.2",
     "tslib": "^2.8.1"
   }
 }

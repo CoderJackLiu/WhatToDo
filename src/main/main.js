@@ -32,6 +32,7 @@ const fs = require('fs');
 const os = require('os');
 const authService = require('../services/auth-service');
 const dataService = require('../services/data-service');
+const updateService = require('../services/update-service');
 
 // 设置缓存目录到用户可写的位置，避免权限错误
 const userCacheDir = path.join(os.homedir(), '.electron-todolist-cache');
@@ -863,6 +864,23 @@ app.whenReady().then(() => {
     loadAutoStartGroups();
   }, 2000); // 延迟2秒，确保认证流程完成
   
+  // 延迟检查更新（避免影响启动速度）
+  if (updateService.isConfigured) {
+    setTimeout(() => {
+      debugLog('[main] 开始自动检查更新...');
+      updateService.checkForUpdates().catch(err => {
+        debugLog('[main] 自动检查更新失败:', err);
+      });
+    }, 5000); // 延迟5秒检查更新
+    
+    // 监听更新状态变化，发送给渲染进程
+    updateService.onStatusChange((status) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('update-status-changed', status);
+      }
+    });
+  }
+  
   app.on('activate', () => {
     if (mainWindow === null) {
       createWindow();
@@ -1128,6 +1146,23 @@ function findGroupIdByWindow(window) {
 // 获取用户数据路径
 ipcMain.handle('get-user-data-path', () => {
   return app.getPath('userData');
+});
+
+// ========== 更新相关 IPC ==========
+ipcMain.handle('update-check', async () => {
+  return await updateService.checkForUpdates();
+});
+
+ipcMain.handle('update-download', async () => {
+  return await updateService.downloadUpdate();
+});
+
+ipcMain.handle('update-install', async () => {
+  return updateService.quitAndInstall();
+});
+
+ipcMain.handle('update-get-status', async () => {
+  return updateService.getStatus();
 });
 
 // ========== 设置管理（保留本地设置） ==========

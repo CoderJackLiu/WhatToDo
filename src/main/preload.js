@@ -115,5 +115,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
   notifyThemeChanged: () => ipcRenderer.send('theme-changed'),
   onThemeChanged: (callback) => ipcRenderer.on('theme-changed', () => callback()),
   
+  // ========== 更新管理 ==========
+  update: {
+    check: () => ipcRenderer.invoke('update-check'),
+    download: () => ipcRenderer.invoke('update-download'),
+    install: () => ipcRenderer.invoke('update-install'),
+    getStatus: () => ipcRenderer.invoke('update-get-status'),
+    onStatusChange: (callback) => {
+      ipcRenderer.on('update-status-changed', (event, status) => callback(status));
+      return () => ipcRenderer.removeAllListeners('update-status-changed');
+    }
+  }
+  
 });
 

@@ -46,6 +46,9 @@ async function init() {
       window.location.href = 'login.html';
     }
   });
+  
+  // 监听更新状态变化
+  subscribeToUpdates();
 }
 
 // 初始化语言
@@ -878,6 +881,82 @@ function showSettingsMenu() {
 // 隐藏设置菜单
 function hideSettingsMenu() {
   settingsMenu.classList.remove('visible');
+}
+
+// 订阅更新状态变化
+let updateStatusUnsubscribe = null;
+let isUpdating = false; // 防止重复提示
+
+function subscribeToUpdates() {
+  updateStatusUnsubscribe = window.electronAPI.update.onStatusChange(async (status) => {
+    // 发现更新可用
+    if (status.available && !isUpdating) {
+      isUpdating = true;
+      const message = i18n.t('update.availableDesc').replace('{version}', status.latestVersion);
+      const confirmed = await showConfirm(message, {
+        title: i18n.t('update.available'),
+        type: 'info',
+        confirmText: i18n.t('update.download'),
+        cancelText: i18n.t('update.cancel')
+      });
+      
+      if (confirmed) {
+        // 用户确认，开始下载
+        try {
+          const result = await window.electronAPI.update.download();
+          if (result.error) {
+            await showAlert(i18n.t('update.downloadFailed') + result.error, {
+              title: i18n.t('message.error'),
+              type: 'error'
+            });
+            isUpdating = false;
+          }
+          // 下载成功会通过状态变化通知用户
+        } catch (error) {
+          console.error('下载更新失败:', error);
+          await showAlert(i18n.t('update.downloadFailed') + error.message, {
+            title: i18n.t('message.error'),
+            type: 'error'
+          });
+          isUpdating = false;
+        }
+      } else {
+        isUpdating = false;
+      }
+    }
+    
+    // 更新下载完成
+    if (status.downloaded && isUpdating) {
+      isUpdating = false;
+      const confirmed = await showConfirm(i18n.t('update.downloaded'), {
+        title: i18n.t('update.available'),
+        type: 'success',
+        confirmText: i18n.t('update.install'),
+        cancelText: i18n.t('cancel')
+      });
+      
+      if (confirmed) {
+        // 用户确认安装，退出应用并安装
+        window.electronAPI.update.install();
+      }
+    }
+    
+    // 下载进度更新（静默处理，不打扰用户）
+    if (status.downloading && status.progress !== undefined) {
+      // 下载中，静默处理
+    }
+    
+    // 下载进度更新（可选：显示进度提示）
+    if (status.downloading && status.progress !== undefined) {
+      // 可以在这里显示进度，但为了简单，我们只在下载完成时提示
+    }
+    
+    // 检查更新失败
+    if (status.error && !status.checking && !status.downloading) {
+      // 静默失败，不打扰用户
+      console.error('更新检查失败:', status.error);
+    }
+  });
 }
 
 // 启动应用

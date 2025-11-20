@@ -100,6 +100,18 @@ const i18n = {
       'message.logoutFailed': '退出登录失败：',
       'message.unknownError': '未知错误',
       
+      // 更新相关
+      'update.available': '发现新版本',
+      'update.availableDesc': '发现新版本 {version}，是否立即下载并安装？',
+      'update.downloading': '正在下载更新...',
+      'update.downloaded': '更新已下载完成，将在关闭应用后自动安装',
+      'update.downloadFailed': '下载更新失败：',
+      'update.checkFailed': '检查更新失败：',
+      'update.latest': '当前已是最新版本',
+      'update.install': '安装更新',
+      'update.download': '下载更新',
+      'update.cancel': '取消',
+      
       // 时间格式化
       'time.justNow': '刚刚',
       'time.minutesAgo': '分钟前',
@@ -202,6 +214,18 @@ const i18n = {
       'message.logoutConfirm': 'Are you sure you want to logout?',
       'message.logoutFailed': 'Logout failed: ',
       'message.unknownError': 'Unknown error',
+      
+      // Update related
+      'update.available': 'Update Available',
+      'update.availableDesc': 'A new version {version} is available. Would you like to download and install it now?',
+      'update.downloading': 'Downloading update...',
+      'update.downloaded': 'Update downloaded successfully. It will be installed automatically when you close the app.',
+      'update.downloadFailed': 'Failed to download update: ',
+      'update.checkFailed': 'Failed to check for updates: ',
+      'update.latest': 'You are using the latest version',
+      'update.install': 'Install Update',
+      'update.download': 'Download Update',
+      'update.cancel': 'Cancel',
       
       // Time formatting
       'time.justNow': 'Just now',
