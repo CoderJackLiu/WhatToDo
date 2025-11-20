@@ -111,6 +111,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   loadSettings: () => ipcRenderer.invoke('load-settings'),
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
   setAutoStart: (enabled) => ipcRenderer.invoke('set-auto-start', enabled),
+  setAutoStartGroups: (groups) => ipcRenderer.invoke('set-auto-start-groups', groups),
   getThemeMode: () => ipcRenderer.invoke('get-theme-mode'),
   notifyThemeChanged: () => ipcRenderer.send('theme-changed'),
   onThemeChanged: (callback) => ipcRenderer.on('theme-changed', () => callback()),

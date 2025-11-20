@@ -53,6 +53,7 @@ app.commandLine.appendSwitch('disk-cache-size', '104857600'); // 100MB
 let mainWindow;
 let groupWindows = new Map(); // 存储所有分组窗口
 let tray;
+let autoStartGroupsLoaded = false; // 标记是否已加载开机启动分组
 
 // 设置文件路径（保留本地设置）
 const settingsPath = path.join(app.getPath('userData'), 'settings.json');
@@ -60,7 +61,7 @@ const settingsPath = path.join(app.getPath('userData'), 'settings.json');
 // 确保设置文件存在
 function ensureSettingsFile() {
   if (!fs.existsSync(settingsPath)) {
-    fs.writeFileSync(settingsPath, JSON.stringify({ autoStart: false, themeMode: 'light', language: 'zh-CN' }, null, 2));
+    fs.writeFileSync(settingsPath, JSON.stringify({ autoStart: false, themeMode: 'light', language: 'zh-CN', autoStartGroups: [] }, null, 2));
   }
 }
 
@@ -130,10 +131,15 @@ function createWindow(initialFile = null) {
 }
 
 // 创建分组窗口
-function createGroupWindow(groupId, groupName) {
+function createGroupWindow(groupId, groupName, alwaysOnTop = false) {
   // 如果该分组窗口已打开，则聚焦
   if (groupWindows.has(groupId)) {
-    groupWindows.get(groupId).focus();
+    const existingWindow = groupWindows.get(groupId);
+    existingWindow.focus();
+    // 如果指定了置顶状态，更新它
+    if (alwaysOnTop !== undefined) {
+      existingWindow.setAlwaysOnTop(alwaysOnTop);
+    }
     return;
   }
 
@@ -159,6 +165,7 @@ function createGroupWindow(groupId, groupName) {
     backgroundColor: '#f5f5f5',
     title: 'TodoList', // 使用固定标题，不再显示分组名称
     icon: windowIcon,
+    alwaysOnTop: alwaysOnTop, // 设置初始置顶状态
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -232,10 +239,114 @@ function createGroupWindow(groupId, groupName) {
   });
 
   groupWindow.on('closed', () => {
+    // 保存窗口关闭时的置顶状态
+    saveGroupWindowState(groupId, groupWindow.isAlwaysOnTop());
     groupWindows.delete(groupId);
   });
 
   groupWindows.set(groupId, groupWindow);
+}
+
+// 保存分组窗口状态（置顶状态）
+function saveGroupWindowState(groupId, alwaysOnTop) {
+  try {
+    let settings = { autoStart: false, themeMode: 'light', language: 'zh-CN', autoStartGroups: [] };
+    if (fs.existsSync(settingsPath)) {
+      try {
+        settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+      } catch (e) {
+        // 如果读取失败，使用默认值
+      }
+    }
+    
+    // 确保 autoStartGroups 存在
+    if (!settings.autoStartGroups) {
+      settings.autoStartGroups = [];
+    }
+    
+    // 查找并更新对应分组的置顶状态
+    const groupIndex = settings.autoStartGroups.findIndex(g => g.groupId === groupId);
+    if (groupIndex >= 0) {
+      settings.autoStartGroups[groupIndex].alwaysOnTop = alwaysOnTop;
+    } else {
+      // 如果分组不在列表中，添加它（但只在用户手动设置时才添加）
+      // 这里不自动添加，避免用户未选择的分组被添加到启动列表
+    }
+    
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+  } catch (error) {
+    console.error('保存分组窗口状态失败:', error);
+  }
+}
+
+// 加载并打开开机启动的分组
+async function loadAutoStartGroups() {
+  // 如果已经加载过，不再重复加载
+  if (autoStartGroupsLoaded) {
+    return;
+  }
+  
+  try {
+    if (!fs.existsSync(settingsPath)) {
+      return;
+    }
+    
+    const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+    if (!settings.autoStartGroups || !Array.isArray(settings.autoStartGroups) || settings.autoStartGroups.length === 0) {
+      autoStartGroupsLoaded = true; // 标记为已加载（即使没有分组）
+      return;
+    }
+    
+    // 等待认证完成
+    const restoreResult = await authService.restoreSession();
+    let isAuthenticated = false;
+    
+    if (restoreResult.success && restoreResult.restored) {
+      isAuthenticated = true;
+    } else {
+      // 如果认证失败，检查当前session
+      const sessionResult = await authService.getSession();
+      if (sessionResult.success && sessionResult.session) {
+        isAuthenticated = true;
+      }
+    }
+    
+    if (!isAuthenticated) {
+      // 未登录，等待登录后再加载
+      debugLog('[main] 未登录，等待登录后再打开开机启动分组');
+      return;
+    }
+    
+    // 加载分组数据以获取分组名称
+    const groupsResult = await dataService.loadGroups();
+    if (!groupsResult.success) {
+      console.error('加载分组失败，无法打开开机启动分组');
+      autoStartGroupsLoaded = true;
+      return;
+    }
+    
+    // 延迟打开分组窗口，确保主窗口已创建
+    setTimeout(() => {
+      settings.autoStartGroups.forEach((groupConfig) => {
+        const groupId = groupConfig.groupId;
+        const alwaysOnTop = groupConfig.alwaysOnTop || false;
+        
+        // 验证分组是否存在
+        const group = groupsResult.data.find(g => g.id === groupId);
+        if (group) {
+          const groupName = group.name || '';
+          createGroupWindow(groupId, groupName, alwaysOnTop);
+          debugLog('[main] 打开开机启动分组:', groupId, '置顶:', alwaysOnTop);
+        } else {
+          console.warn(`开机启动分组 ${groupId} 不存在，已跳过`);
+        }
+      });
+      autoStartGroupsLoaded = true; // 标记为已加载
+    }, 1500); // 延迟1.5秒，确保主窗口和认证已完成
+  } catch (error) {
+    console.error('加载开机启动分组失败:', error);
+    autoStartGroupsLoaded = true; // 即使失败也标记为已加载，避免重复尝试
+  }
 }
 
 // 创建系统托盘
@@ -459,7 +570,7 @@ app.whenReady().then(() => {
   }
   
   // 监听认证状态变化
-  authService.onAuthStateChange((event, session) => {
+  authService.onAuthStateChange(async (event, session) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('auth-state-changed', event, session);
       
@@ -471,6 +582,8 @@ app.whenReady().then(() => {
           mainWindow.setSize(380, 520);
           mainWindow.setMinimumSize(360, 450);
         }, 100);
+        // 重置开机启动分组加载标志
+        autoStartGroupsLoaded = false;
       }
       // 如果登录，跳转到主页面
       else if (event === 'SIGNED_IN' && session) {
@@ -480,6 +593,10 @@ app.whenReady().then(() => {
           mainWindow.setSize(500, 650);
           mainWindow.setMinimumSize(400, 500);
         }, 100);
+        // 登录后尝试加载开机启动分组
+        setTimeout(() => {
+          loadAutoStartGroups();
+        }, 500);
       }
     }
   });
@@ -493,6 +610,13 @@ app.whenReady().then(() => {
   
   createWindow();
   createTray();
+  
+  // 延迟加载开机启动分组，等待认证完成
+  // 如果认证成功，会在认证状态变化监听器中加载
+  // 如果认证失败，这里也会尝试加载（可能用户已经登录）
+  setTimeout(() => {
+    loadAutoStartGroups();
+  }, 2000); // 延迟2秒，确保认证流程完成
   
   app.on('activate', () => {
     if (mainWindow === null) {
@@ -629,10 +753,10 @@ ipcMain.on('renderer-log', (event, level, message) => {
 });
 
 // 打开分组窗口
-ipcMain.on('open-group', (event, { groupId, groupName }) => {
-  debugLog('[main] 收到打开分组请求, groupId:', groupId, 'groupName:', groupName);
+ipcMain.on('open-group', (event, { groupId, groupName, alwaysOnTop }) => {
+  debugLog('[main] 收到打开分组请求, groupId:', groupId, 'groupName:', groupName, 'alwaysOnTop:', alwaysOnTop);
   try {
-  createGroupWindow(groupId, groupName);
+    createGroupWindow(groupId, groupName, alwaysOnTop);
     debugLog('[main] 分组窗口创建成功');
   } catch (error) {
     console.error('[main] 创建分组窗口失败:', error);
@@ -691,11 +815,30 @@ ipcMain.on('toggle-always-on-top', (event) => {
   const window = BrowserWindow.fromWebContents(event.sender);
   if (window) {
     const isAlwaysOnTop = window.isAlwaysOnTop();
-    window.setAlwaysOnTop(!isAlwaysOnTop);
+    const newState = !isAlwaysOnTop;
+    window.setAlwaysOnTop(newState);
+    
+    // 保存置顶状态到设置
+    // 通过窗口的webContents找到对应的groupId
+    const groupId = findGroupIdByWindow(window);
+    if (groupId) {
+      saveGroupWindowState(groupId, newState);
+    }
+    
     // 返回新的置顶状态
-    event.reply('always-on-top-changed', !isAlwaysOnTop);
+    event.reply('always-on-top-changed', newState);
   }
 });
+
+// 通过窗口查找对应的groupId
+function findGroupIdByWindow(window) {
+  for (const [groupId, groupWindow] of groupWindows.entries()) {
+    if (groupWindow === window) {
+      return groupId;
+    }
+  }
+  return null;
+}
 
 // 获取用户数据路径
 ipcMain.handle('get-user-data-path', () => {
@@ -736,7 +879,7 @@ ipcMain.handle('set-auto-start', async (event, enabled) => {
     });
     
     // 保存设置（保留其他设置）
-    let settings = { autoStart: false, themeMode: 'light', language: 'zh-CN' };
+    let settings = { autoStart: false, themeMode: 'light', language: 'zh-CN', autoStartGroups: [] };
     if (fs.existsSync(settingsPath)) {
       try {
         settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
@@ -749,11 +892,47 @@ ipcMain.handle('set-auto-start', async (event, enabled) => {
     if (!settings.language) {
       settings.language = 'zh-CN';
     }
+    // 确保 autoStartGroups 字段存在
+    if (!settings.autoStartGroups) {
+      settings.autoStartGroups = [];
+    }
     fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
     
     return { success: true };
   } catch (error) {
     console.error('Error setting auto start:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// 设置开机启动的分组
+ipcMain.handle('set-auto-start-groups', async (event, groups) => {
+  try {
+    let settings = { autoStart: false, themeMode: 'light', language: 'zh-CN', autoStartGroups: [] };
+    if (fs.existsSync(settingsPath)) {
+      try {
+        settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+      } catch (e) {
+        // 如果读取失败，使用默认值
+      }
+    }
+    
+    // 验证groups格式
+    if (!Array.isArray(groups)) {
+      return { success: false, error: 'groups必须是数组' };
+    }
+    
+    // 确保每个分组都有groupId和alwaysOnTop字段
+    settings.autoStartGroups = groups.map(g => ({
+      groupId: g.groupId,
+      alwaysOnTop: g.alwaysOnTop || false
+    }));
+    
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error setting auto start groups:', error);
     return { success: false, error: error.message };
   }
 });
