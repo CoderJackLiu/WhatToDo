@@ -171,39 +171,21 @@ jobs:
             exit 1
           fi
           
-          if [ -z "${{ steps.find-files.outputs.yml_path }}" ]; then
-            # Generate latest.yml if not found
-            echo "Generating latest.yml file..."
-            cat > dist/latest.yml << EOF
-version: ${VERSION}
-files:
-  - url: ${NEW_NAME}
-    sha512: ${SHA512}
-    size: ${EXE_SIZE}
-path: ${NEW_NAME}
-sha512: ${SHA512}
-releaseDate: '$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")'
-EOF
-            echo "Generated latest.yml:"
-            cat dist/latest.yml
-          else
-            # Update existing latest.yml with correct version and path
-            echo "Updating existing latest.yml..."
-            YML_FILE="${{ steps.find-files.outputs.yml_path }}"
-            # Use sed or awk to update the yml file, or regenerate it
-            cat > dist/latest.yml << EOF
-version: ${VERSION}
-files:
-  - url: ${NEW_NAME}
-    sha512: ${SHA512}
-    size: ${EXE_SIZE}
-path: ${NEW_NAME}
-sha512: ${SHA512}
-releaseDate: '$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")'
-EOF
-            echo "Updated latest.yml:"
-            cat dist/latest.yml
-          fi
+          # Generate latest.yml file
+          RELEASE_DATE=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
+          echo "Generating latest.yml file..."
+          {
+            echo "version: ${VERSION}"
+            echo "files:"
+            echo "  - url: ${NEW_NAME}"
+            echo "    sha512: ${SHA512}"
+            echo "    size: ${EXE_SIZE}"
+            echo "path: ${NEW_NAME}"
+            echo "sha512: ${SHA512}"
+            echo "releaseDate: '${RELEASE_DATE}'"
+          } > dist/latest.yml
+          echo "Generated latest.yml:"
+          cat dist/latest.yml
 
       - name: Upload to GitHub Packages
         env:
