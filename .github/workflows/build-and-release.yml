@@ -49,6 +49,8 @@ jobs:
         id: find-artifact
         run: |
           $exeFile = Get-ChildItem -Path dist -Filter *.exe -Recurse | Select-Object -First 1
+          $ymlFile = Get-ChildItem -Path dist -Filter latest.yml -Recurse | Select-Object -First 1
+          
           if ($exeFile) {
             $fileName = $exeFile.Name
             # Get relative path from workspace root using proper path handling
@@ -69,6 +71,15 @@ jobs:
             Get-ChildItem -Path dist -Recurse | Select-Object FullName | ForEach-Object { echo $_.FullName }
             exit 1
           }
+          
+          if ($ymlFile) {
+            $ymlPath = [System.IO.Path]::GetRelativePath($workspaceRoot, $ymlFile.FullName).Replace('\', '/')
+            echo "yml_path=$ymlPath" >> $env:GITHUB_OUTPUT
+            echo "Found latest.yml: $ymlPath"
+          } else {
+            echo "Warning: latest.yml not found, will be generated in release step"
+            echo "yml_path=" >> $env:GITHUB_OUTPUT
+          }
 
       - name: Save build artifacts
         uses: actions/upload-artifact@v4
@@ -76,6 +87,7 @@ jobs:
           name: build-artifact
           path: ${{ steps.find-artifact.outputs.file_path }}
           retention-days: 30
+          if-no-files-found: error
 
   release:
     needs: build
@@ -108,8 +120,8 @@ jobs:
           name: build-artifact
           path: ./artifacts
 
-      - name: Find exe file
-        id: find-exe
+      - name: Find exe file and latest.yml
+        id: find-files
         run: |
           # Find all exe files
           EXE_FILE=$(find artifacts -name "*.exe" -type f | head -n 1)
@@ -123,15 +135,75 @@ jobs:
           echo "file_name=$EXE_NAME" >> $GITHUB_OUTPUT
           echo "file_path=$EXE_FILE" >> $GITHUB_OUTPUT
           echo "Found file: $EXE_NAME (path: $EXE_FILE)"
+          
+          # Find latest.yml file
+          YML_FILE=$(find artifacts -name "latest.yml" -type f | head -n 1)
+          if [ -z "$YML_FILE" ]; then
+            echo "Warning: latest.yml not found in artifacts, will generate it"
+            echo "yml_path=" >> $GITHUB_OUTPUT
+          else
+            echo "yml_path=$YML_FILE" >> $GITHUB_OUTPUT
+            echo "Found latest.yml: $YML_FILE"
+          fi
 
       - name: Prepare Release files
+        id: prepare-release
         run: |
           TAG_NAME=${GITHUB_REF#refs/tags/}
+          VERSION="${{ steps.version.outputs.version }}"
           NEW_NAME="TodoList-${TAG_NAME}.exe"
           mkdir -p dist
-          cp "${{ steps.find-exe.outputs.file_path }}" "dist/$NEW_NAME"
+          cp "${{ steps.find-files.outputs.file_path }}" "dist/$NEW_NAME"
           echo "NEW_NAME=$NEW_NAME" >> $GITHUB_ENV
           echo "Prepared file: dist/$NEW_NAME"
+          
+          # Generate or update latest.yml
+          EXE_FILE="${{ steps.find-files.outputs.file_path }}"
+          EXE_SIZE=$(stat -f%z "$EXE_FILE" 2>/dev/null || stat -c%s "$EXE_FILE" 2>/dev/null || echo "0")
+          
+          # Calculate SHA512 hash of the exe file
+          if command -v shasum >/dev/null 2>&1; then
+            SHA512=$(shasum -a 512 "$EXE_FILE" | cut -d' ' -f1)
+          elif command -v sha512sum >/dev/null 2>&1; then
+            SHA512=$(sha512sum "$EXE_FILE" | cut -d' ' -f1)
+          else
+            echo "Error: Cannot find shasum or sha512sum command"
+            exit 1
+          fi
+          
+          if [ -z "${{ steps.find-files.outputs.yml_path }}" ]; then
+            # Generate latest.yml if not found
+            echo "Generating latest.yml file..."
+            cat > dist/latest.yml << EOF
+version: ${VERSION}
+files:
+  - url: ${NEW_NAME}
+    sha512: ${SHA512}
+    size: ${EXE_SIZE}
+path: ${NEW_NAME}
+sha512: ${SHA512}
+releaseDate: '$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")'
+EOF
+            echo "Generated latest.yml:"
+            cat dist/latest.yml
+          else
+            # Update existing latest.yml with correct version and path
+            echo "Updating existing latest.yml..."
+            YML_FILE="${{ steps.find-files.outputs.yml_path }}"
+            # Use sed or awk to update the yml file, or regenerate it
+            cat > dist/latest.yml << EOF
+version: ${VERSION}
+files:
+  - url: ${NEW_NAME}
+    sha512: ${SHA512}
+    size: ${EXE_SIZE}
+path: ${NEW_NAME}
+sha512: ${SHA512}
+releaseDate: '$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")'
+EOF
+            echo "Updated latest.yml:"
+            cat dist/latest.yml
+          fi
 
       - name: Upload to GitHub Packages
         env:
@@ -351,7 +423,9 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          files: dist/*.exe
+          files: |
+            dist/*.exe
+            dist/latest.yml
           tag_name: ${{ github.ref_name }}
           name: Release ${{ steps.version.outputs.version }}
           body_path: release-notes.md
