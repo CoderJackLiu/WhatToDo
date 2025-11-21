@@ -1,5 +1,25 @@
 # 更新日志
 
+## [2.3.1] - 2024-12-20
+
+### 🔧 修复与改进
+
+#### 🐛 Bug 修复
+- **修复自动更新功能** - 修复 GitHub Release 中缺少 `latest.yml` 文件导致更新检查失败的问题
+- **优化 GitHub Actions** - 自动生成并上传 `latest.yml` 文件，确保更新功能正常工作
+
+#### 🔧 技术改进
+- 优化 GitHub Actions 构建流程，自动处理 `latest.yml` 文件
+- 添加 `latest.yml` 文件生成逻辑，支持手动生成和自动生成
+- 改进 Release 文件上传流程，确保更新清单文件正确上传
+
+#### 📦 文件变更
+- 修改：`.github/workflows/build-and-release.yml` - 添加 `latest.yml` 文件生成和上传逻辑
+- 新增：`scripts/generate-latest-yml.ps1` - 快速生成 `latest.yml` 文件的 PowerShell 脚本
+- 新增：`docs/FIX_MISSING_LATEST_YML.md` - 修复缺失 `latest.yml` 文件的指南
+
+---
+
 ## [2.3.0] - 2024-12-20
 
 ### 🚀 新增功能 - 编号显示与窗口状态记忆

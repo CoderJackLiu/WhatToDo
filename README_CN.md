@@ -4,7 +4,7 @@
 
 [English](./README.md) | [中文版](./README_CN.md)
 
-![Version](https://img.shields.io/badge/version-2.3.0-blue)
+![Version](https://img.shields.io/badge/version-2.3.1-blue)
 ![Electron](https://img.shields.io/badge/Electron-27.0.0-green)
 ![License](https://img.shields.io/badge/license-MIT-orange)
 
