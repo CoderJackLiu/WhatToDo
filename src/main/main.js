@@ -303,12 +303,69 @@ function createGroupWindow(groupId, groupName, alwaysOnTop = false, windowBounds
   groupWindow.on('resized', debouncedSaveBounds);
   
   groupWindow.on('closed', () => {
+    // 在删除窗口引用之前，保存该窗口的状态（即使关闭了也要保存）
+    if (groupWindow && !groupWindow.isDestroyed()) {
+      const bounds = groupWindow.getBounds();
+      saveGroupWindowState(groupId, {
+        alwaysOnTop: groupWindow.isAlwaysOnTop(),
+        x: bounds.x,
+        y: bounds.y,
+        width: bounds.width,
+        height: bounds.height
+      });
+    }
+    
     groupWindows.delete(groupId);
     // 窗口关闭时保存所有打开的窗口状态
     saveAllOpenGroupWindows();
   });
 
   groupWindows.set(groupId, groupWindow);
+}
+
+// 保存单个分组窗口状态（即使窗口已关闭）
+function saveGroupWindowState(groupId, windowState) {
+  try {
+    let settings = { autoStart: false, themeMode: 'light', language: 'zh-CN', autoStartGroups: [] };
+    if (fs.existsSync(settingsPath)) {
+      try {
+        settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+      } catch (e) {
+        // 如果读取失败，使用默认值
+      }
+    }
+    
+    // 确保 autoStartGroups 是数组
+    if (!Array.isArray(settings.autoStartGroups)) {
+      settings.autoStartGroups = [];
+    }
+    
+    // 查找是否已存在该分组的记录
+    const existingIndex = settings.autoStartGroups.findIndex(g => g.groupId === groupId);
+    
+    // 合并窗口状态（保留置顶状态等）
+    const groupState = {
+      groupId: groupId,
+      alwaysOnTop: windowState.alwaysOnTop || false,
+      x: windowState.x,
+      y: windowState.y,
+      width: windowState.width,
+      height: windowState.height
+    };
+    
+    if (existingIndex >= 0) {
+      // 更新现有记录
+      settings.autoStartGroups[existingIndex] = groupState;
+    } else {
+      // 添加新记录
+      settings.autoStartGroups.push(groupState);
+    }
+    
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+    debugLog('[main] 已保存分组窗口状态:', groupId, groupState);
+  } catch (error) {
+    console.error('保存分组窗口状态失败:', error);
+  }
 }
 
 // 保存所有当前打开的分组窗口状态
@@ -323,12 +380,19 @@ function saveAllOpenGroupWindows() {
       }
     }
     
+    // 确保 autoStartGroups 是数组
+    if (!Array.isArray(settings.autoStartGroups)) {
+      settings.autoStartGroups = [];
+    }
+    
+    // 创建一个 Map 来存储当前打开的窗口状态
+    const openWindowsMap = new Map();
+    
     // 保存当前所有打开的分组窗口及其置顶状态、位置和大小
-    settings.autoStartGroups = [];
     groupWindows.forEach((window, groupId) => {
       if (window && !window.isDestroyed()) {
         const bounds = window.getBounds();
-        settings.autoStartGroups.push({
+        openWindowsMap.set(groupId, {
           groupId: groupId,
           alwaysOnTop: window.isAlwaysOnTop(),
           x: bounds.x,
@@ -339,8 +403,26 @@ function saveAllOpenGroupWindows() {
       }
     });
     
+    // 合并：保留已关闭窗口的状态，更新打开窗口的状态
+    const updatedGroups = [];
+    
+    // 先添加当前打开的窗口（会覆盖旧的状态）
+    openWindowsMap.forEach((state) => {
+      updatedGroups.push(state);
+    });
+    
+    // 然后添加已关闭但之前打开过的窗口（保留它们的位置信息）
+    settings.autoStartGroups.forEach((savedGroup) => {
+      // 如果这个窗口当前没有打开，保留它的状态
+      if (!openWindowsMap.has(savedGroup.groupId)) {
+        updatedGroups.push(savedGroup);
+      }
+    });
+    
+    settings.autoStartGroups = updatedGroups;
+    
     fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
-    debugLog('[main] 已保存打开的窗口状态:', settings.autoStartGroups.length, '个窗口');
+    debugLog('[main] 已保存窗口状态:', updatedGroups.length, '个窗口（', openWindowsMap.size, '个打开）');
   } catch (error) {
     console.error('保存分组窗口状态失败:', error);
   }
@@ -362,11 +444,14 @@ async function loadAutoStartGroups() {
     const hasAutoStartGroups = settings.autoStartGroups && Array.isArray(settings.autoStartGroups) && settings.autoStartGroups.length > 0;
     const isAutoStartEnabled = settings.autoStart === true;
     
-    // 如果没有分组窗口要打开，且没有设置开机启动，直接返回
+    // 如果没有保存的分组窗口状态，且没有设置开机启动，直接返回
+    // 注意：即使没有设置开机启动，如果有保存的窗口状态，也应该恢复（支持重启恢复）
     if (!hasAutoStartGroups && !isAutoStartEnabled) {
       autoStartGroupsLoaded = true;
       return;
     }
+    
+    // 如果有保存的分组窗口状态，无论是否设置了开机启动，都应该恢复（支持重启恢复）
     
     // 等待认证完成
     const restoreResult = await authService.restoreSession();
@@ -1040,26 +1125,32 @@ ipcMain.on('renderer-log', (event, level, message) => {
 ipcMain.on('open-group', (event, { groupId, groupName }) => {
   debugLog('[main] 收到打开分组请求, groupId:', groupId, 'groupName:', groupName);
   try {
-    // 尝试加载保存的窗口位置和大小
+    // 尝试加载保存的窗口位置、大小和置顶状态
     let savedBounds = null;
+    let savedAlwaysOnTop = false;
     try {
       if (fs.existsSync(settingsPath)) {
         const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
         const savedGroup = settings.autoStartGroups?.find(g => g.groupId === groupId);
-        if (savedGroup && savedGroup.x !== undefined && savedGroup.y !== undefined) {
-          savedBounds = {
-            x: savedGroup.x,
-            y: savedGroup.y,
-            width: savedGroup.width,
-            height: savedGroup.height
-          };
+        if (savedGroup) {
+          if (savedGroup.x !== undefined && savedGroup.y !== undefined) {
+            savedBounds = {
+              x: savedGroup.x,
+              y: savedGroup.y,
+              width: savedGroup.width,
+              height: savedGroup.height
+            };
+          }
+          if (savedGroup.alwaysOnTop !== undefined) {
+            savedAlwaysOnTop = savedGroup.alwaysOnTop;
+          }
         }
       }
     } catch (e) {
       // 忽略错误，使用默认位置
     }
     
-    createGroupWindow(groupId, groupName, false, savedBounds);
+    createGroupWindow(groupId, groupName, savedAlwaysOnTop, savedBounds);
     // 窗口打开后保存状态
     setTimeout(() => {
       saveAllOpenGroupWindows();
@@ -1134,6 +1225,19 @@ ipcMain.on('toggle-always-on-top', (event) => {
     const isAlwaysOnTop = window.isAlwaysOnTop();
     const newState = !isAlwaysOnTop;
     window.setAlwaysOnTop(newState);
+    
+    // 找到对应的 groupId 并保存该窗口状态
+    const groupId = findGroupIdByWindow(window);
+    if (groupId) {
+      const bounds = window.getBounds();
+      saveGroupWindowState(groupId, {
+        alwaysOnTop: newState,
+        x: bounds.x,
+        y: bounds.y,
+        width: bounds.width,
+        height: bounds.height
+      });
+    }
     
     // 保存所有打开的窗口状态
     saveAllOpenGroupWindows();
