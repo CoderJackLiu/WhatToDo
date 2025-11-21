@@ -8,6 +8,10 @@ A powerful TodoList desktop application with group management and multi-window s
 ![Electron](https://img.shields.io/badge/Electron-27.0.0-green)
 ![License](https://img.shields.io/badge/license-MIT-orange)
 
+## 🎬 Demo
+
+<video src="./docs/Demo.mp4" controls width="100%"></video>
+
 ## ✨ Core Features
 
 - **📋 Group Management** - Create multiple todo groups to organize tasks

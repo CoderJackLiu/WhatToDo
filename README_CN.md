@@ -8,6 +8,10 @@
 ![Electron](https://img.shields.io/badge/Electron-27.0.0-green)
 ![License](https://img.shields.io/badge/license-MIT-orange)
 
+## 🎬 演示视频
+
+<video src="./docs/Demo.mp4" controls width="100%"></video>
+
 ## ✨ 核心功能
 
 - **📋 分组管理** - 创建多个待办分组，分类管理任务
