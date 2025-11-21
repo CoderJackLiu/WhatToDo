@@ -142,9 +142,11 @@ class DataService {
 
   // 更新分组 - 乐观更新
   async updateGroup(id, updates) {
+    // 保存旧数据用于回滚
+    const oldData = cacheService.getGroupsCache().find(g => g.id === id);
+    
     try {
       // 立即更新缓存
-      const oldData = cacheService.getGroupsCache().find(g => g.id === id);
       cacheService.updateGroupCache(id, updates);
 
       // 后台同步到服务器
@@ -162,6 +164,23 @@ class DataService {
 
       return { success: true, data };
     } catch (error) {
+      // 检查是否是字段不存在的错误（show_numbers 字段可能不存在）
+      const isFieldNotFound = error.message && (
+        error.message.includes('show_numbers') || 
+        error.message.includes('Could not find') ||
+        error.code === 'PGRST204'
+      );
+      
+      if (isFieldNotFound) {
+        // 字段不存在时，静默失败（不记录错误，因为可能使用本地存储）
+        // 但需要回滚缓存，因为数据库更新失败
+        if (oldData) {
+          cacheService.updateGroupCache(id, oldData);
+        }
+        return { success: false, error: error.message, fieldNotFound: true };
+      }
+      
+      // 其他错误正常记录
       console.error('Failed to update group:', error);
       
       // 失败时回滚缓存

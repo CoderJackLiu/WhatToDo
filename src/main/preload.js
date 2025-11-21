@@ -114,6 +114,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getThemeMode: () => ipcRenderer.invoke('get-theme-mode'),
   notifyThemeChanged: () => ipcRenderer.send('theme-changed'),
   onThemeChanged: (callback) => ipcRenderer.on('theme-changed', () => callback()),
+  notifyLanguageChanged: (lang) => ipcRenderer.send('language-changed', lang),
+  onLanguageChanged: (callback) => ipcRenderer.on('language-changed', (event, lang) => callback(lang)),
   
   // ========== 更新管理 ==========
   update: {

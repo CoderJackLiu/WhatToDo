@@ -16,6 +16,7 @@ const addBtn = document.getElementById('add-btn');
 const todoList = document.getElementById('todo-list');
 const todoCount = document.getElementById('todo-count');
 const clearCompletedBtn = document.getElementById('clear-completed');
+const toggleNumbersBtn = document.getElementById('toggle-numbers');
 const pinBtn = document.getElementById('pin-btn');
 const pinBtnImg = pinBtn ? pinBtn.querySelector('img') : null;
 const minimizeBtn = document.getElementById('minimize-btn');
@@ -39,6 +40,29 @@ let groups = [];
 let todos = [];
 let isAlwaysOnTop = false;
 let currentTheme = 'default';
+let showNumbers = false; // 编号显示状态
+
+// 从本地存储加载分组编号显示设置
+function loadGroupNumbersSetting(groupId) {
+  try {
+    const key = `group_${groupId}_show_numbers`;
+    const saved = localStorage.getItem(key);
+    return saved === 'true';
+  } catch (error) {
+    console.error('加载本地编号设置失败:', error);
+    return false;
+  }
+}
+
+// 保存分组编号显示设置到本地存储
+function saveGroupNumbersSetting(groupId, value) {
+  try {
+    const key = `group_${groupId}_show_numbers`;
+    localStorage.setItem(key, value ? 'true' : 'false');
+  } catch (error) {
+    console.error('保存本地编号设置失败:', error);
+  }
+}
 
 // 初始化应用
 async function init() {
@@ -122,6 +146,14 @@ async function init() {
       applyTheme(currentTheme);
     }
   });
+  
+  // 监听语言变化
+  window.electronAPI.onLanguageChanged(async (lang) => {
+    // 重新初始化语言
+    i18n.init(lang);
+    // 更新界面文本
+    updateUI();
+  });
     
     debugLog('[group-detail] init() 函数执行完成');
   } catch (error) {
@@ -175,6 +207,9 @@ function updateUI() {
   
   // 更新置顶按钮
   updatePinButton();
+  
+  // 更新编号按钮
+  updateNumbersButton();
 }
 
 // 更新空状态文本
@@ -254,6 +289,22 @@ async function loadGroupData() {
         setTimeout(() => {
           applyTheme(groupTheme);
         }, 100);
+        
+        // 加载编号显示设置（优先从数据库，如果不存在则从本地存储）
+        if (group.show_numbers !== undefined && group.show_numbers !== null) {
+          // 数据库字段存在，使用数据库值
+          showNumbers = Boolean(group.show_numbers);
+          // 清除本地存储（数据已同步到云端）
+          try {
+            localStorage.removeItem(`group_${currentGroupId}_show_numbers`);
+          } catch (e) {
+            // 忽略清除本地存储的错误
+          }
+        } else {
+          // 数据库字段不存在，使用本地存储
+          showNumbers = loadGroupNumbersSetting(currentGroupId);
+        }
+        updateNumbersButton();
       } else {
         console.warn('[group-detail] ⚠️ 未找到分组，currentGroupId:', currentGroupId);
         console.warn('[group-detail] 所有分组ID:', groupsResult.data.map(g => g.id));
@@ -375,6 +426,11 @@ function bindEvents() {
   
   // 清除已完成
   clearCompletedBtn.addEventListener('click', clearCompleted);
+  
+  // 编号显示切换
+  if (toggleNumbersBtn) {
+    toggleNumbersBtn.addEventListener('click', toggleNumberDisplay);
+  }
   
   // 菜单按钮
   menuBtn.addEventListener('click', (e) => {
@@ -749,7 +805,12 @@ function renderTodos() {
       
       const text = document.createElement('span');
       text.className = 'todo-text';
-      text.textContent = todo.text;
+      // 根据编号显示状态决定是否显示编号
+      if (showNumbers) {
+        text.textContent = `${index + 1}. ${todo.text}`;
+      } else {
+        text.textContent = todo.text;
+      }
       text.title = '双击编辑';
       // 双击编辑
       text.addEventListener('dblclick', (e) => {
@@ -1165,6 +1226,64 @@ function showThemeMenu() {
 // 隐藏主题菜单
 function hideThemeMenu() {
   themeMenu.classList.remove('visible');
+}
+
+// 切换编号显示（云端 + 本地存储）
+async function toggleNumberDisplay() {
+  if (!currentGroupId) return;
+  
+  // 乐观更新：先更新 UI
+  showNumbers = !showNumbers;
+  updateNumbersButton();
+  
+  // 立即保存到本地存储（确保设置不丢失）
+  saveGroupNumbersSetting(currentGroupId, showNumbers);
+  
+  // 立即渲染待办列表以应用编号显示
+  renderTodos();
+  
+  // 尝试保存设置到云端
+  try {
+    const result = await window.electronAPI.data.updateGroup(currentGroupId, {
+      show_numbers: showNumbers
+    });
+    if (result.success) {
+      // 数据库更新成功，清除本地存储（数据已同步到云端）
+      try {
+        localStorage.removeItem(`group_${currentGroupId}_show_numbers`);
+      } catch (e) {
+        // 忽略清除本地存储的错误
+      }
+    } else {
+      // 如果字段不存在，使用本地存储作为后备
+      if (result.fieldNotFound || (result.error && result.error.includes('show_numbers'))) {
+        // 字段不存在，静默处理（不输出日志）
+        // 设置已保存到本地存储，功能正常
+      } else {
+        // 其他错误才记录
+        console.error('保存编号显示设置失败:', result.error);
+      }
+    }
+  } catch (error) {
+    // 静默失败，不影响 UI
+    // 设置已保存到本地存储，功能正常
+  }
+}
+
+// 更新编号按钮状态
+function updateNumbersButton() {
+  if (!toggleNumbersBtn) return;
+  
+  if (showNumbers) {
+    toggleNumbersBtn.classList.add('active');
+    toggleNumbersBtn.title = i18n.t('todos.hideNumbersTitle');
+  } else {
+    toggleNumbersBtn.classList.remove('active');
+    toggleNumbersBtn.title = i18n.t('todos.showNumbersTitle');
+  }
+  
+  // 更新按钮文本（多语言）
+  toggleNumbersBtn.textContent = i18n.t('todos.showNumbers');
 }
 
 // 启动应用

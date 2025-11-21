@@ -323,6 +323,9 @@ async function selectLanguage(lang) {
       const currentSettings = await window.electronAPI.loadSettings() || {};
       currentSettings.language = lang;
       await window.electronAPI.saveSettings(currentSettings);
+      
+      // 通知所有打开的分组窗口语言已变化
+      window.electronAPI.notifyLanguageChanged(lang);
     } catch (error) {
       console.error('保存语言设置失败:', error);
     }

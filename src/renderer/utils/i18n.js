@@ -51,6 +51,9 @@ const i18n = {
       'todos.deleteFailed': '删除待办失败：',
       'todos.clearFailed': '清除失败：',
       'todos.clearConfirm': '确定要删除 {count} 个已完成的待办事项吗？',
+      'todos.showNumbers': '编号',
+      'todos.showNumbersTitle': '显示编号',
+      'todos.hideNumbersTitle': '隐藏编号',
       
       // 登录页面
       'login.title': '📝 TodoList',
@@ -166,6 +169,9 @@ const i18n = {
       'todos.deleteFailed': 'Failed to delete todo: ',
       'todos.clearFailed': 'Failed to clear: ',
       'todos.clearConfirm': 'Are you sure you want to delete {count} completed todos?',
+      'todos.showNumbers': 'Numbers',
+      'todos.showNumbersTitle': 'Show Numbers',
+      'todos.hideNumbersTitle': 'Hide Numbers',
       
       // Login page
       'login.title': '📝 TodoList',

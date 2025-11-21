@@ -617,6 +617,12 @@ body.group-detail .todo-item.completed .todo-text {
   transition: background-color 0.3s ease;
 }
 
+.footer-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 body.dark-theme .footer {
   background-color: #1e1e1e;
 }
@@ -678,6 +684,24 @@ body.dark-theme .clear-btn {
 
 .clear-btn:active {
   transform: scale(0.95);
+}
+
+/* 编号显示按钮 */
+.numbers-btn {
+  min-width: 50px;
+}
+
+.numbers-btn.active {
+  background: #f5f0e1;
+  border-color: #d4c7a8;
+  color: #5c4f3a;
+  font-weight: 500;
+}
+
+body.dark-theme .numbers-btn.active {
+  background: #404040;
+  border-color: #505050;
+  color: #e0e0e0;
 }
 
 /* 空状态 */

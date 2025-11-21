@@ -1088,6 +1088,16 @@ ipcMain.on('theme-changed', () => {
   });
 });
 
+// 语言变化通知
+ipcMain.on('language-changed', (event, lang) => {
+  // 通知所有打开的分组窗口更新语言
+  groupWindows.forEach((window) => {
+    if (window && !window.isDestroyed()) {
+      window.webContents.send('language-changed', lang);
+    }
+  });
+});
+
 // 窗口控制（支持多窗口）
 ipcMain.on('minimize-window', (event) => {
   const window = BrowserWindow.fromWebContents(event.sender);
