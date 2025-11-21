@@ -79,6 +79,7 @@ const i18n = {
       'login.resendEmail': '重新发送确认邮件',
       'login.sessionExpired': '您的登录已过期',
       'login.sessionExpiredDesc': '为了您的账户安全，登录状态已过期（10天），请重新登录。',
+      'login.rememberPassword': '记住密码',
       
       // 分组详情页面
       'detail.title': 'TodoList',
@@ -197,6 +198,7 @@ const i18n = {
       'login.resendEmail': 'Resend confirmation email',
       'login.sessionExpired': 'Your session has expired',
       'login.sessionExpiredDesc': 'For your account security, your login session has expired (10 days), please log in again.',
+      'login.rememberPassword': 'Remember Password',
       
       // Group detail page
       'detail.title': 'TodoList',

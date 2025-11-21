@@ -117,6 +117,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   notifyLanguageChanged: (lang) => ipcRenderer.send('language-changed', lang),
   onLanguageChanged: (callback) => ipcRenderer.on('language-changed', (event, lang) => callback(lang)),
   
+  // ========== 凭据管理 ==========
+  credentials: {
+    save: (email, password) => ipcRenderer.invoke('save-credentials', email, password),
+    get: () => ipcRenderer.invoke('get-credentials'),
+    clear: () => ipcRenderer.invoke('clear-credentials'),
+    has: () => ipcRenderer.invoke('has-credentials')
+  },
+  
   // ========== 更新管理 ==========
   update: {
     check: () => ipcRenderer.invoke('update-check'),

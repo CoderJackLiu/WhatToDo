@@ -15,6 +15,7 @@ const githubLoginBtn = document.getElementById('github-login-btn');
 // 表单输入
 const loginEmail = document.getElementById('login-email');
 const loginPassword = document.getElementById('login-password');
+const rememberPassword = document.getElementById('remember-password');
 const registerEmail = document.getElementById('register-email');
 const registerPassword = document.getElementById('register-password');
 const registerPasswordConfirm = document.getElementById('register-password-confirm');
@@ -29,6 +30,7 @@ async function init() {
   checkOAuthCallback();
   loadThemeMode();
   listenForSessionExpired();
+  loadSavedCredentials();
 }
 
 // 监听 session 过期事件
@@ -75,6 +77,16 @@ function bindEvents() {
   loginPassword.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') handleLogin();
   });
+
+  // 记住密码复选框变化事件
+  if (rememberPassword) {
+    rememberPassword.addEventListener('change', async (e) => {
+      // 如果取消勾选，清除已保存的凭据
+      if (!e.target.checked) {
+        await window.electronAPI.credentials.clear();
+      }
+    });
+  }
 
   // 注册
   registerBtn.addEventListener('click', handleRegister);
@@ -234,6 +246,13 @@ async function handleLogin() {
     const result = await window.electronAPI.auth.signIn(email, password);
     
     if (result.success) {
+      // 登录成功，根据复选框状态决定是否保存凭据
+      if (rememberPassword && rememberPassword.checked) {
+        await window.electronAPI.credentials.save(email, password);
+      } else {
+        // 如果未勾选，清除已保存的凭据
+        await window.electronAPI.credentials.clear();
+      }
       // 登录成功，跳转到主界面
       window.location.href = 'groups.html';
       } else {
@@ -504,6 +523,27 @@ async function loadThemeMode() {
     }
   } catch (error) {
     console.error('加载主题模式失败:', error);
+  }
+}
+
+// 加载保存的凭据
+async function loadSavedCredentials() {
+  try {
+    const hasCredentials = await window.electronAPI.credentials.has();
+    if (hasCredentials) {
+      const result = await window.electronAPI.credentials.get();
+      if (result.success && result.email && result.password) {
+        // 自动填充账号和密码
+        loginEmail.value = result.email;
+        loginPassword.value = result.password;
+        // 勾选记住密码复选框
+        if (rememberPassword) {
+          rememberPassword.checked = true;
+        }
+      }
+    }
+  } catch (error) {
+    console.error('加载保存的凭据失败:', error);
   }
 }
 

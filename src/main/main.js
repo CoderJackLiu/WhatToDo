@@ -33,6 +33,7 @@ const os = require('os');
 const authService = require('../services/auth-service');
 const dataService = require('../services/data-service');
 const updateService = require('../services/update-service');
+const credentialsService = require('../services/credentials-service');
 
 // 设置缓存目录到用户可写的位置，避免权限错误
 const userCacheDir = path.join(os.homedir(), '.electron-todolist-cache');
@@ -1336,6 +1337,50 @@ ipcMain.handle('set-auto-start', async (event, enabled) => {
   } catch (error) {
     console.error('Error setting auto start:', error);
     return { success: false, error: error.message };
+  }
+});
+
+// ========== 凭据管理 ==========
+// 保存凭据
+ipcMain.handle('save-credentials', async (event, email, password) => {
+  try {
+    const result = credentialsService.saveCredentials(email, password);
+    return result;
+  } catch (error) {
+    console.error('Error saving credentials:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// 获取凭据
+ipcMain.handle('get-credentials', async () => {
+  try {
+    const result = credentialsService.getCredentials();
+    return result;
+  } catch (error) {
+    console.error('Error getting credentials:', error);
+    return { success: false, email: null, password: null, error: error.message };
+  }
+});
+
+// 清除凭据
+ipcMain.handle('clear-credentials', async () => {
+  try {
+    const result = credentialsService.clearCredentials();
+    return result;
+  } catch (error) {
+    console.error('Error clearing credentials:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// 检查是否有保存的凭据
+ipcMain.handle('has-credentials', async () => {
+  try {
+    return credentialsService.hasCredentials();
+  } catch (error) {
+    console.error('Error checking credentials:', error);
+    return false;
   }
 });
 
