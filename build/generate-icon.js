@@ -10,9 +10,12 @@ const sharp = require('sharp');
 const toIco = require('to-ico');
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
-// 图标尺寸列表（Windows 需要多个尺寸）
-const sizes = [16, 32, 48, 64, 128, 256];
+// Windows 图标尺寸列表
+const winSizes = [16, 32, 48, 64, 128, 256];
+// Mac 图标尺寸列表（需要更多尺寸）
+const macSizes = [16, 32, 64, 128, 256, 512, 1024];
 
 // 创建 SVG 图标（紫色渐变 + 待办清单图标）
 function createIconSVG(size) {
@@ -74,9 +77,9 @@ async function generateIcons() {
     fs.mkdirSync(outputDir, { recursive: true });
   }
   
-  // 生成各个尺寸的 PNG 图标
+  // 生成各个尺寸的 PNG 图标（Windows）
   const pngFiles = [];
-  for (const size of sizes) {
+  for (const size of winSizes) {
     const svg = createIconSVG(size);
     const pngPath = path.join(outputDir, `icon-${size}.png`);
     
@@ -89,11 +92,28 @@ async function generateIcons() {
     pngFiles.push(pngPath);
   }
   
+  // 生成 Mac 需要的额外尺寸
+  const macPngFiles = [];
+  for (const size of macSizes) {
+    if (!winSizes.includes(size)) {
+      const svg = createIconSVG(size);
+      const pngPath = path.join(outputDir, `icon-${size}.png`);
+      
+      await sharp(Buffer.from(svg))
+        .resize(size, size)
+        .png()
+        .toFile(pngPath);
+      
+      console.log(`✓ 生成 ${size}x${size} PNG 图标 (Mac)`);
+      macPngFiles.push(pngPath);
+    }
+  }
+  
   // 生成 ICO 文件（Windows 需要）
   console.log('\n正在生成 ICO 文件...');
   try {
     const icoBuffers = await Promise.all(
-      sizes.map(size => {
+      winSizes.map(size => {
         const pngPath = path.join(outputDir, `icon-${size}.png`);
         return fs.promises.readFile(pngPath);
       })
@@ -108,9 +128,75 @@ async function generateIcons() {
     console.log('提示: 可以手动使用在线工具将 icon-256.png 转换为 icon.ico');
   }
   
+  // 生成 ICNS 文件（Mac 需要）
+  console.log('\n正在生成 ICNS 文件...');
+  try {
+    await generateIcns(outputDir);
+    console.log(`✓ 生成 icon.icns 文件`);
+  } catch (error) {
+    console.warn('生成 ICNS 文件失败:', error.message);
+    console.log('提示: ICNS 文件需要在 macOS 上使用 iconutil 命令生成');
+    console.log('或者使用在线工具将 PNG 文件转换为 ICNS');
+  }
+  
   console.log('\n✓ 所有图标生成完成！');
   
   return pngFiles;
+}
+
+// 生成 ICNS 文件（仅在 macOS 上可用）
+async function generateIcns(outputDir) {
+  if (process.platform !== 'darwin') {
+    throw new Error('ICNS 文件只能在 macOS 上生成');
+  }
+  
+  // 创建 iconset 目录
+  const iconsetDir = path.join(outputDir, 'icon.iconset');
+  if (fs.existsSync(iconsetDir)) {
+    fs.rmSync(iconsetDir, { recursive: true });
+  }
+  fs.mkdirSync(iconsetDir, { recursive: true });
+  
+  // Mac 需要的图标尺寸和命名规则
+  const iconSizes = [
+    { size: 16, name: 'icon_16x16.png' },
+    { size: 32, name: 'icon_16x16@2x.png' },
+    { size: 32, name: 'icon_32x32.png' },
+    { size: 64, name: 'icon_32x32@2x.png' },
+    { size: 128, name: 'icon_128x128.png' },
+    { size: 256, name: 'icon_128x128@2x.png' },
+    { size: 256, name: 'icon_256x256.png' },
+    { size: 512, name: 'icon_256x256@2x.png' },
+    { size: 512, name: 'icon_512x512.png' },
+    { size: 1024, name: 'icon_512x512@2x.png' }
+  ];
+  
+  // 复制或生成所需尺寸的图标
+  for (const { size, name } of iconSizes) {
+    const sourcePath = path.join(outputDir, `icon-${size}.png`);
+    const targetPath = path.join(iconsetDir, name);
+    
+    if (fs.existsSync(sourcePath)) {
+      fs.copyFileSync(sourcePath, targetPath);
+    } else {
+      // 如果不存在，从最接近的尺寸生成
+      const closestSize = macSizes.find(s => s >= size) || macSizes[macSizes.length - 1];
+      const closestPath = path.join(outputDir, `icon-${closestSize}.png`);
+      if (fs.existsSync(closestPath)) {
+        await sharp(closestPath)
+          .resize(size, size)
+          .png()
+          .toFile(targetPath);
+      }
+    }
+  }
+  
+  // 使用 iconutil 生成 ICNS
+  const icnsPath = path.join(outputDir, 'icon.icns');
+  execSync(`iconutil -c icns "${iconsetDir}" -o "${icnsPath}"`, { stdio: 'inherit' });
+  
+  // 清理 iconset 目录
+  fs.rmSync(iconsetDir, { recursive: true });
 }
 
 // 运行

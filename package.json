@@ -9,7 +9,12 @@
   "scripts": {
     "start": "chcp 65001 >nul && electron .",
     "build": "electron-builder --win --x64",
-    "build:dir": "electron-builder --win --x64 --dir"
+    "build:dir": "electron-builder --win --x64 --dir",
+    "build:mac": "electron-builder --mac",
+    "build:mac:dir": "electron-builder --mac --dir",
+    "build:mac:x64": "electron-builder --mac --x64",
+    "build:mac:arm64": "electron-builder --mac --arm64",
+    "build:all": "electron-builder --win --x64 --mac"
   },
   "keywords": [
     "electron",
@@ -47,6 +52,23 @@
       ],
       "icon": "build/icon.ico"
     },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "build/icon.icns",
+      "category": "public.app-category.productivity",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
+    },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
@@ -79,6 +101,11 @@
       {
         "from": "build/icon.ico",
         "to": "build/icon.ico"
+      },
+      {
+        "from": "build/icon.icns",
+        "to": "build/icon.icns",
+        "filter": ["**/*"]
       }
     ],
     "electronDownload": {
